@@ -53,7 +53,7 @@ app.get('/api/users/:id', function(req, res) {
     for (var i = 0; i < users.length; i++) {
         if (users[i]['id'] === userId) {
 
-            res.send({'user': userId});
+            res.json(users[i]);
         }
     }
 
