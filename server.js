@@ -1,14 +1,6 @@
 var express = require('express');
 var app = express();
-// Route implementation
-app.get('/api/users', function(req, res) {
-  res.send({'users': users});
-});
-app.get('/api/users/:id', function(req, res) {
-  var userId = req.params.id;
 
-  res.send({'user': user});
-});
 var server = app.listen(3000, function() {
     console.log('Listening on port %d', server.address().port);
 });
@@ -48,5 +40,23 @@ var posts = [{
         body: 'I have no idea what you\'re talking about',
     }];
     
+
+
+// Route implementation
+app.get('/api/users', function(req, res) {
+  res.send({'users': users});
+});
+
+app.get('/api/users/:id', function(req, res) {
+            
+    var userId = req.params.id;
+    for (var i = 0; i < users.length; i++) {
+        if (users[i]['id'] === userId) {
+
+            res.send({'user': userId});
+        }
+    }
+
+});
 
 
