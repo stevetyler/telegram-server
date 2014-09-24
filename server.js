@@ -44,7 +44,7 @@ var posts = [{
 
 // Route implementation
 app.get('/api/users', function(req, res) {
-  res.send({'users': users});
+  res.status(200).send('users', users);
 });
 
 app.get('/api/users/:id', function(req, res) {
@@ -52,11 +52,9 @@ app.get('/api/users/:id', function(req, res) {
     var userId = req.params.id;
     for (var i = 0; i < users.length; i++) {
         if (users[i]['id'] === userId) {
-
-            res.json(users[i]);
+            res.status(200).send('user', users[i]);
         }
     }
-
 });
 
 
