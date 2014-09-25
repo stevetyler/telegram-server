@@ -44,15 +44,18 @@ var posts = [{
 
 // Route implementation
 app.get('/api/users', function(req, res) {
-  res.status(200).send('users', users);
+  res.status(200).send({'users': users});
+});
+
+app.get('/api/posts', function(req, res) {
+  res.status(200).send({'posts': posts});
 });
 
 app.get('/api/users/:id', function(req, res) {
-            
     var userId = req.params.id;
     for (var i = 0; i < users.length; i++) {
         if (users[i]['id'] === userId) {
-            res.status(200).send('user', users[i]);
+            res.status(200).send({'user': users[i]});
         }
     }
 });
