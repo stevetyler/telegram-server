@@ -1,13 +1,12 @@
+
 var express = require('express');
 var bodyParser = require('body-parser');
-
 var app = express();
-
-app.use(bodyParser.json());
-
 var server = app.listen(3000, function() {
     console.log('Listening on port %d', server.address().port);
 });
+var passport = require('passport'),
+    LocalStrategy = require('passport-local').Strategy;
 
 var users = [{
         id: 'stevetyler',
@@ -46,8 +45,40 @@ var posts = [{
         createdDate: new Date(2014, 8, 8),
         body: 'I have no idea what you\'re talking about',
     }];
+
+
+app.use(bodyParser.json());
+
+passport.use(new LocalStrategy(
+    function(username, password, done) {
+        // User ?
+        User.findOne({username: username}, function(err, user) {
+            if (err) {
+                return done(err);}
+            if (!user) {
+                return done(null, false, {
+                    message: 'Incorrect username.'
+                });
+            }
+            // ??
+            if (!user.validPassword(password)) {
+                return done(null, false, {
+                    message: 'Incorrect password.'
+                });
+            }
+            return done(null, user);
+        });
+    }
+));
     
 // Route implementation
+app.post('/api/login',
+    passport.authenticate('local', {
+    successRedirect: '/myStream',
+    failureRedirect: '/'
+}));
+
+// what makes the users get request?
 app.get('/api/users', function(req, res) {
     var operation = req.query.operation;
     var username = req.query.username;
@@ -63,8 +94,6 @@ app.get('/api/users', function(req, res) {
             }
         }
         if (password === user.password) {
-            console.log(user.password);
-            console.log(password);
             res.status(200).send({'users': [user]});
         }
         else {
@@ -101,7 +130,7 @@ app.post('/api/posts', function(req, res) {
         createdDate: req.body.post.createdDate,
         body: req.body.post.body
     };
-    console.log(post);
+    // console.log(post);
     posts.push(post);
     res.send({'post': post});
 });
