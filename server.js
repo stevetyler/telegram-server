@@ -50,41 +50,66 @@ var posts = [{
         body: 'I have no idea what you\'re talking about',
     }];
 
-
 app.use(express.static('public'));
 app.use(cookieParser());
 app.use(bodyParser.json());
 app.use(session({ secret: 'keyboard cat' }));
 app.use(passport.initialize());
 app.use(passport.session());
-// app.use(app.router); deprecated
 
 passport.use(new LocalStrategy(
     function(username, password, done) {
-        
+        for (var i = 0; i < users.length; i++) {
+            if (users[i]['id'] === username) {
+                if (users[i]['password'] === password) {
+                    return done(null, user, null);
+                }
+                // is this necessary?
+                else {
+                    return done(null, null, null);
+                }             
+            }
+        }
+        return done(null, null, null);
     }
 ));
+ 
+passport.serializeUser(function(user, done) {
+    done(null, user.id);
+});
 
-// what makes the users get request?
+passport.deserializeUser(function(id, done) {
+    for (var i = 0; i < users.length; i++) {
+        if (users[i]['id'] === id) {
+            return done(null, user);
+        }
+    }
+    return done(null, null);
+});
+
+// REST adapter makes request
 app.get('/api/users', function(req, res) {
     var operation = req.query.operation;
-    var username = req.query.username;
-    var password = req.query.password;
     var user;
 
     if (operation === 'login') {
-
-        // passport.authenticate('local', function(err, user, info) {
-        //     if (err) {
-        //         return next(err);
-        //     }
-        //     if (!user) {
-        //         return res.redirect('/');
-        //     }
-        //     req.logIn(user, function(err) {
-        //         return res.redirect('/users/' + user.username);
-        //     });
-        // })(req, res);
+        passport.authenticate('local', function(err, user, info) {
+            if (err) {
+                // sends status only.
+                return res.status(500).end();
+            }
+            if (!user) {
+                return res.status(404).end();
+            }
+            // sets cookie req.logIn
+            req.logIn(user, function(err) {
+                if (err) {
+                    return res.status(500).end();
+                }
+                // res.send always sets status 200
+                return res.send([user]);
+            });
+        })(req, res);
     }
     else {
         res.status(200).send({'users': users});
