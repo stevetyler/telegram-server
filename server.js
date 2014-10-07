@@ -5,7 +5,7 @@ var bodyParser = require('body-parser');
 var cookieParser = require('cookie-parser');
 var passport = require('passport');
 var LocalStrategy = require('passport-local').Strategy;
-var nlogger = require('nlogger').logger(module);
+var logger = require('nlogger').logger(module);
 
 var app = express();
 var server = app.listen(3000, function() {
@@ -62,12 +62,13 @@ passport.use(new LocalStrategy(
         for (var i = 0; i < users.length; i++) {
             if (users[i]['id'] === username) {
                 if (users[i]['password'] === password) {
+                    var user = users[i];
                     return done(null, user, null);
                 }
                 // is this necessary?
                 else {
                     return done(null, null, null);
-                }             
+                }           
             }
         }
         return done(null, null, null);
@@ -81,6 +82,7 @@ passport.serializeUser(function(user, done) {
 passport.deserializeUser(function(id, done) {
     for (var i = 0; i < users.length; i++) {
         if (users[i]['id'] === id) {
+            var user = users[i];
             return done(null, user);
         }
     }
@@ -94,6 +96,7 @@ app.get('/api/users', function(req, res) {
 
     if (operation === 'login') {
         passport.authenticate('local', function(err, user, info) {
+            logger.info(user);
             if (err) {
                 // sends status only.
                 return res.status(500).end();
@@ -107,7 +110,7 @@ app.get('/api/users', function(req, res) {
                     return res.status(500).end();
                 }
                 // res.send always sets status 200
-                return res.send([user]);
+                return res.send({'users': [user]});
             });
         })(req, res);
     }
