@@ -53,7 +53,12 @@ var posts = [{
 app.use(express.static('public'));
 app.use(cookieParser());
 app.use(bodyParser.json());
-app.use(session({ secret: 'keyboard cat' }));
+app.use(session({
+    secret: 'keyboard cat',
+    resave: true,  // forces session to be saved even when unmodified
+    saveUninitialized: true,  // forces a new unmodified session to be saved to the store. 
+    rolling: false  // reset expiration date setting cookie on every response
+}));
 app.use(passport.initialize());
 app.use(passport.session());
 
@@ -67,7 +72,7 @@ passport.use(new LocalStrategy(
                 }
                 // is this necessary?
                 else {
-                    return done(null, null, null);
+                    return done(null, null, null);  // needs to return or it will keep searching
                 }           
             }
         }
@@ -104,7 +109,7 @@ app.get('/api/users', function(req, res) {
             if (!user) {
                 return res.status(404).end();
             }
-            // sets cookie req.logIn
+            // sets cookie
             req.logIn(user, function(err) {
                 if (err) {
                     return res.status(500).end();
@@ -133,8 +138,13 @@ app.get('/api/users/:id', function(req, res) {
 });
 
 app.post('/api/users', function(req, res) {
-   users.push(req.body.user);
-   res.send({'user': req.body.user});
+    users.push(req.body.user);
+    req.logIn(user, function(err) {
+        if (err) {
+            return res.status(500).end();
+        }
+        return res.send({'users': req.body.user});
+    });
 });
 
 app.post('/api/posts', function(req, res) {
