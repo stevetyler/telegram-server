@@ -70,10 +70,9 @@ passport.use(new LocalStrategy(
                     var user = users[i];
                     return done(null, user, null);
                 }
-                // is this necessary?
                 else {
                     return done(null, null, null);  // needs to return or it will keep searching
-                }           
+                }
             }
         }
         return done(null, null, null);
@@ -81,6 +80,8 @@ passport.use(new LocalStrategy(
 ));
  
 passport.serializeUser(function(user, done) {
+
+    // why doesn't this return done?
     done(null, user.id);
 });
 
@@ -93,6 +94,16 @@ passport.deserializeUser(function(id, done) {
     }
     return done(null, null);
 });
+
+// Ensure authentication
+function ensureAuthenticated(req, res, done) {
+    if (req.isAuthenticated()) {
+        return done();
+    }
+    else {
+        return res.status(403).end();
+    }
+}
 
 // REST adapter makes request
 app.get('/api/users', function(req, res) {
@@ -125,7 +136,7 @@ app.get('/api/users', function(req, res) {
 });
 
 app.get('/api/posts', function(req, res) {
-  res.status(200).send({'posts': posts});
+        res.status(200).send({'posts': posts});
 });
 
 app.get('/api/users/:id', function(req, res) {
@@ -147,16 +158,21 @@ app.post('/api/users', function(req, res) {
     });
 });
 
-app.post('/api/posts', function(req, res) {
-    var post = {
-        id: posts.length + 1,
-        user: req.body.post.user,
-        createdDate: req.body.post.createdDate,
-        body: req.body.post.body
-    };
-    // console.log(post);
+app.post('/api/posts', ensureAuthenticated, function(user, req, res) {
+    // check authenticated user === req.body.post.user
+    if (user === req.body.post.user) {
+        var post = {
+            id: posts.length + 1,
+            user: req.body.post.user,
+            createdDate: req.body.post.createdDate,
+            body: req.body.post.body
+        };
     posts.push(post);
     res.send({'post': post});
+    }
+    else {
+        return res.status(403).end();
+    }
 });
 
 
