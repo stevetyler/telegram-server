@@ -68,6 +68,7 @@ passport.use(new LocalStrategy(
             if (users[i]['id'] === username) {
                 if (users[i]['password'] === password) {
                     var user = users[i];
+
                     return done(null, user, null);
                 }
                 else {
@@ -81,7 +82,6 @@ passport.use(new LocalStrategy(
  
 passport.serializeUser(function(user, done) {
 
-    // why doesn't this return done?
     done(null, user.id);
 });
 
@@ -89,13 +89,12 @@ passport.deserializeUser(function(id, done) {
     for (var i = 0; i < users.length; i++) {
         if (users[i]['id'] === id) {
             var user = users[i];
-            return done(null, user);
+            return done(null, user); // return exits function or the next function will be called
         }
     }
-    return done(null, null);
+    done(null, null);
 });
 
-// Ensure authentication
 function ensureAuthenticated(req, res, done) {
     if (req.isAuthenticated()) {
         return done();
@@ -110,6 +109,14 @@ app.get('/api/users', function(req, res) {
     var operation = req.query.operation;
     var user;
 
+    if (operation === 'authenticated') {
+        if (req.isAuthenticated()) {
+            return res.send({'users': [req.user]});
+        }
+        else {
+            return res.send({'users': []});
+        }
+    }
     if (operation === 'login') {
         passport.authenticate('local', function(err, user, info) {
             logger.info(user);
@@ -125,13 +132,12 @@ app.get('/api/users', function(req, res) {
                 if (err) {
                     return res.status(500).end();
                 }
-                // res.send always sets status 200
                 return res.send({'users': [user]});
             });
         })(req, res);
     }
     else {
-        res.status(200).send({'users': users});
+        return res.send({'users': []});
     }
 });
 
@@ -148,6 +154,11 @@ app.get('/api/users/:id', function(req, res) {
     }
 });
 
+app.get('/api/logout', function(req, res) {
+    req.logout();
+    res.status(200).end();
+});
+
 app.post('/api/users', function(req, res) {
     users.push(req.body.user);
     req.logIn(user, function(err) {
@@ -158,9 +169,8 @@ app.post('/api/users', function(req, res) {
     });
 });
 
-app.post('/api/posts', ensureAuthenticated, function(user, req, res) {
-    // check authenticated user === req.body.post.user
-    if (user === req.body.post.user) {
+app.post('/api/posts', ensureAuthenticated, function(req, res) {
+    if (req.user.id === req.body.post.user) {
         var post = {
             id: posts.length + 1,
             user: req.body.post.user,
