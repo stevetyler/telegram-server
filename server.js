@@ -12,10 +12,31 @@ var server = app.listen(3000, function() {
     console.log('Listening on port %d', server.address().port);
 });
 
-var db = require('./database');
 
-var User = db.model('User');
-var Post = db.model('Post');
+var mongoose = require('mongoose');
+var Schema = mongoose.Schema;
+
+var userSchema = new Schema({
+    id: String,
+    name: String,
+    password: String,
+    imageURL: String,
+    operation: String,
+    followers: [String],
+    following: [String]
+});
+
+var postSchema = new Schema({
+    id: String,
+    user: String,
+    createdDate: Date,
+    body: String
+});
+
+var User = mongoose.model('User', userSchema);
+var Post = mongoose.model('Post', postSchema);
+
+mongoose.connect('mongodb://localhost/telegram');
 
 app.use(express.static('public'));
 app.use(cookieParser());
@@ -30,25 +51,22 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 passport.use(new LocalStrategy(
-    function(username, password, done) {
-        for (var i = 0; i < users.length; i++) {
-            if (users[i]['id'] === username) {
-                if (users[i]['password'] === password) {
-                    var user = users[i];
 
-                    return done(null, user, null);
-                }
-                else {
-                    return done(null, null, null);  // needs to return or it will keep searching
-                }
+    // use findOne method
+    function(username, password, done) {
+        User.findOne({id: username}, function (err, user){
+            if (err) {
+                return done(err);
             }
-        }
-        return done(null, null, null);
+            if (!user) {
+                return done(null, null, {message: 'Incorrect username'});
+            }
+            return done(null, user, null);
+        });
     }
 ));
  
 passport.serializeUser(function(user, done) {
-
     done(null, user.id);
 });
 
@@ -114,6 +132,7 @@ app.get('/api/posts', function(req, res) {
 
 app.get('/api/users/:id', function(req, res) {
     var userId = req.params.id;
+    //use findOne
     for (var i = 0; i < users.length; i++) {
         if (users[i]['id'] === userId) {
             res.status(200).send({'user': users[i]});
