@@ -52,7 +52,7 @@ app.use(passport.session());
 
 passport.use(new LocalStrategy(
 
-    // use findOne method
+    // use findOne Mongo method instead of for loop
     function(username, password, done) {
         User.findOne({id: username}, function (err, user){
             if (err) {
@@ -133,11 +133,18 @@ app.get('/api/posts', function(req, res) {
 app.get('/api/users/:id', function(req, res) {
     var userId = req.params.id;
     //use findOne
-    for (var i = 0; i < users.length; i++) {
-        if (users[i]['id'] === userId) {
-            res.status(200).send({'user': users[i]});
+    User.findOne({id: userId}, function(err, user) {
+        if (err) {
+            return done(err);
         }
-    }
+        res.status(200).send({'user': user});
+    });
+
+    // for (var i = 0; i < users.length; i++) {
+    //     if (users[i]['id'] === userId) {
+    //         res.status(200).send({'user': users[i]});
+    //     }
+    // }
 });
 
 app.get('/api/logout', function(req, res) {
@@ -146,7 +153,10 @@ app.get('/api/logout', function(req, res) {
 });
 
 app.post('/api/users', function(req, res) {
-    users.push(req.body.user);
+    // users.push(req.body.user);
+    // add user to User collection
+
+
     req.logIn(user, function(err) {
         if (err) {
             return res.status(500).end();
