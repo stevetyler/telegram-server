@@ -21,7 +21,6 @@ var userSchema = new Schema({
     name: String,
     password: String,
     imageURL: String,
-    operation: String,
     followers: [String],
     following: [String]
 });
@@ -33,16 +32,19 @@ var postSchema = new Schema({
     body: String
 });
 
-var User = mongoose.model('User', userSchema);
-var Post = mongoose.model('Post', postSchema);
-
 mongoose.connect('mongodb://localhost/telegram');
+
+mongoose.connection.model('User', userSchema);
+mongoose.connection.model('Post', postSchema);
+
+var User = mongoose.connection.model('User');
+var Post = mongoose.connection.model('Post');
 
 app.use(express.static('public'));
 app.use(cookieParser());
 app.use(bodyParser.json());
 app.use(session({
-    secret: 'keyboard cat',
+    secret: 'keyboard cat', // what is this??
     resave: true,  // forces session to be saved even when unmodified
     saveUninitialized: true,  // forces a new unmodified session to be saved to the store. 
     rolling: false  // reset expiration date setting cookie on every response
@@ -51,8 +53,6 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 passport.use(new LocalStrategy(
-
-    // use findOne Mongo method instead of for loop
     function(username, password, done) {
         User.findOne({id: username}, function (err, user){
             if (err) {
@@ -71,12 +71,13 @@ passport.serializeUser(function(user, done) {
 });
 
 passport.deserializeUser(function(id, done) {
-    for (var i = 0; i < users.length; i++) {
-        if (users[i]['id'] === id) {
-            var user = users[i];
-            return done(null, user); // return exits function or the next function will be called
+    User.findOne({id: id}, function(err, user) {
+        if (err) {
+            return done(err);
         }
-    }
+        return done(null, user);
+
+    });
     done(null, null);
 });
 
@@ -89,7 +90,8 @@ function ensureAuthenticated(req, res, done) {
     }
 }
 
-// REST adapter makes request
+// Users route requests 
+
 app.get('/api/users', function(req, res) {
     var operation = req.query.operation;
     var user;
@@ -122,63 +124,91 @@ app.get('/api/users', function(req, res) {
         })(req, res);
     }
     else {
-        return res.send({'users': []});
+        User.find({}, function(err, users) {
+            if (err) {
+                return res.status(500).end();
+            }
+            return res.send({'users': users});
+        });
     }
 });
 
-app.get('/api/posts', function(req, res) {
-        res.status(200).send({'posts': posts});
+app.post('/api/users', function(req, res) {
+
+    if (req.body.user) {
+        User.findOne({id: req.body.user.id}, function (err, user) {
+            if (user) {
+                // user already exists
+                res.status(400).end();
+            }
+            else {
+                var newUser = new User(req.body.user);
+                newUser.save(function(err, user){
+                    if (err) {
+                        return res.status(500).end();
+                    }
+                    req.logIn(user, function(err) {
+                        if (err) {
+                            return res.status(500).end();
+                        }
+                        return res.send({'users': req.body.user});
+                    });
+                });
+            };
+        });  
+    };
+
 });
 
 app.get('/api/users/:id', function(req, res) {
-    var userId = req.params.id;
-    //use findOne
+    var userId = req.params.id; // is this needed? 
+
     User.findOne({id: userId}, function(err, user) {
-        if (err) {
-            return done(err);
-        }
-        res.status(200).send({'user': user});
-    });
-
-    // for (var i = 0; i < users.length; i++) {
-    //     if (users[i]['id'] === userId) {
-    //         res.status(200).send({'user': users[i]});
-    //     }
-    // }
-});
-
-app.get('/api/logout', function(req, res) {
-    req.logout();
-    res.status(200).end();
-});
-
-app.post('/api/users', function(req, res) {
-    // users.push(req.body.user);
-    // add user to User collection
-
-
-    req.logIn(user, function(err) {
         if (err) {
             return res.status(500).end();
         }
-        return res.send({'users': req.body.user});
+        if (!user) {
+            return res.status(404).end();
+        }
+        res.send({'user': user});
     });
+});
+
+
+// Posts route requests
+
+app.get('/api/posts', function(req, res) {
+    // res.send({'posts': posts});
 });
 
 app.post('/api/posts', ensureAuthenticated, function(req, res) {
     if (req.user.id === req.body.post.user) {
-        var post = {
-            id: posts.length + 1,
-            user: req.body.post.user,
-            createdDate: req.body.post.createdDate,
-            body: req.body.post.body
-        };
-    posts.push(post);
+
+        var post = new Post({
+                        // id: posts.length + 1,
+                        user: req.body.post.user,
+                        createdDate: req.body.post.createdDate,
+                        body: req.body.post.body
+                    });
+
+    post.save(function(err, post) {
+        if (err) {
+            res.status(500).end();
+        }
+
+    });
+
     res.send({'post': post});
     }
     else {
         return res.status(403).end();
     }
+});
+
+// Logout requests
+app.get('/api/logout', function(req, res) {
+    req.logout();
+    res.status(200).end();
 });
 
 
