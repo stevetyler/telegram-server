@@ -95,15 +95,7 @@ function ensureAuthenticated(req, res, done) {
 app.get('/api/users', function(req, res) {
     var operation = req.query.operation;
     var user;
-
-    if (operation === 'authenticated') {
-        if (req.isAuthenticated()) {
-            return res.send({'users': [req.user]});
-        }
-        else {
-            return res.send({'users': []});
-        }
-    }
+    
     if (operation === 'login') {
         passport.authenticate('local', function(err, user, info) {
             logger.info(user);
@@ -122,6 +114,14 @@ app.get('/api/users', function(req, res) {
                 return res.send({'users': [user]});
             });
         })(req, res);
+    }
+    else if (operation === 'authenticated') {
+        if (req.isAuthenticated()) {
+            return res.send({'users': [req.user]});
+        }
+        else {
+            return res.send({'users': []});
+        }
     }
     else {
         User.find({}, function(err, users) {
@@ -151,17 +151,16 @@ app.post('/api/users', function(req, res) {
                         if (err) {
                             return res.status(500).end();
                         }
-                        return res.send({'users': req.body.user});
+                        return res.send({'user': req.body.user});
                     });
                 });
-            };
-        });  
-    };
-
+            }
+        });
+    }
 });
 
 app.get('/api/users/:id', function(req, res) {
-    var userId = req.params.id; // is this needed? 
+    var userId = req.params.id;
 
     User.findOne({id: userId}, function(err, user) {
         if (err) {
@@ -178,25 +177,49 @@ app.get('/api/users/:id', function(req, res) {
 // Posts route requests
 
 app.get('/api/posts', function(req, res) {
-    // res.send({'posts': posts});
+    Post.find(function(err, posts) {
+        
+        if (err) {
+            res.status(400).end();
+        }
+        var emberPosts = [];
+        posts.forEach(function(post) {
+            var emberPost = {
+                id: post._id,
+                user: post.user,
+                body: post.body,
+                createdDate: post.createdDate
+            };
+            emberPosts.push(emberPost);
+        });
+        return res.send({'posts': emberPosts});
+    });
 });
 
 app.post('/api/posts', ensureAuthenticated, function(req, res) {
+    var post = {
+            user: req.body.post.user,
+            createdDate: req.body.post.createdDate,
+            body: req.body.post.body
+        };
+
     if (req.user.id === req.body.post.user) {
 
-        var post = new Post({
-                        // id: posts.length + 1,
-                        user: req.body.post.user,
-                        createdDate: req.body.post.createdDate,
-                        body: req.body.post.body
-                    });
+        var newPost = new Post(post);
 
-    post.save(function(err, post) {
-        if (err) {
-            res.status(500).end();
-        }
+        var emberPost = {
+            id: newPost._id,
+            user: req.user.id,
+            body: newPost.body,
+            createdDate: newPost.createdDate
+        };
 
-    });
+        post.save(function(err, post) {
+            if (err) {
+                res.status(500).end();
+            }
+            res.send({'post': emberPost});
+        });
 
     res.send({'post': post});
     }
