@@ -90,6 +90,7 @@ function ensureAuthenticated(req, res, done) {
     }
 }
 
+
 // Users route requests 
 
 app.get('/api/users', function(req, res) {
@@ -177,12 +178,13 @@ app.get('/api/users/:id', function(req, res) {
 // Posts route requests
 
 app.get('/api/posts', function(req, res) {
-    Post.find(function(err, posts) {
-        
-        if (err) {
-            res.status(400).end();
-        }
+
+    Post.find({}, function(err, posts) {
         var emberPosts = [];
+        if (err) {
+            res.status(404).end();
+        }
+        
         posts.forEach(function(post) {
             var emberPost = {
                 id: post._id,
