@@ -40,7 +40,8 @@ mongoose.connection.model('Post', postSchema);
 var User = mongoose.connection.model('User');
 var Post = mongoose.connection.model('Post');
 
-app.use(express.static('public'));
+// Middleware
+// app.use(express.static('public'));
 app.use(cookieParser());
 app.use(bodyParser.json());
 app.use(session({
@@ -71,14 +72,14 @@ passport.serializeUser(function(user, done) {
 });
 
 passport.deserializeUser(function(id, done) {
+    // Async function, done was being called every time
     User.findOne({id: id}, function(err, user) {
         if (err) {
             return done(err);
         }
         return done(null, user);
-
     });
-    done(null, null);
+    // done(null, null);
 });
 
 function ensureAuthenticated(req, res, done) {
@@ -181,10 +182,14 @@ app.get('/api/posts', function(req, res) {
 
     Post.find({}, function(err, posts) {
         var emberPosts = [];
+
         if (err) {
-            res.status(404).end();
+            console.log('sending 404');
+            // need to return or code will continue executing
+            return res.status(404).end();
         }
         
+        // Mongo requires _id value
         posts.forEach(function(post) {
             var emberPost = {
                 id: post._id,
@@ -216,17 +221,16 @@ app.post('/api/posts', ensureAuthenticated, function(req, res) {
             createdDate: newPost.createdDate
         };
 
-        post.save(function(err, post) {
+        newPost.save(function(err, post) {
             if (err) {
-                res.status(500).end();
+                // sends different error from browser to identify origin
+                res.status(501).end();
             }
-            res.send({'post': emberPost});
+            return res.send({'post': emberPost});
         });
-
-    res.send({'post': post});
     }
     else {
-        return res.status(403).end();
+        return res.status(401).end();
     }
 });
 
