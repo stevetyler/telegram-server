@@ -41,7 +41,7 @@ var User = mongoose.connection.model('User');
 var Post = mongoose.connection.model('Post');
 
 // Middleware
-// app.use(express.static('public'));
+// app.use(express.static('public')); not needed
 app.use(cookieParser());
 app.use(bodyParser.json());
 app.use(session({
@@ -79,7 +79,6 @@ passport.deserializeUser(function(id, done) {
         }
         return done(null, user);
     });
-    // done(null, null);
 });
 
 function ensureAuthenticated(req, res, done) {
@@ -175,32 +174,57 @@ app.get('/api/users/:id', function(req, res) {
     });
 });
 
-
 // Posts route requests
 
 app.get('/api/posts', function(req, res) {
-
-    Post.find({}, function(err, posts) {
-        var emberPosts = [];
-
-        if (err) {
-            console.log('sending 404');
-            // need to return or code will continue executing
-            return res.status(404).end();
-        }
-        
-        // Mongo requires _id value
-        posts.forEach(function(post) {
-            var emberPost = {
-                id: post._id,
-                user: post.user,
-                body: post.body,
-                createdDate: post.createdDate
-            };
-            emberPosts.push(emberPost);
+    
+    var emberPosts = [];
+    // Find and send all posts authored by req.query.ownedBy
+    if (req.query.ownedBy) {
+        var query = {user: req.query.ownedBy};
+        console.log('success');
+        Post.find(query, function(err, posts) {
+            if (err) {
+                console.log(query);
+                return res.status(404).end();
+            }
+            
+            // Mongo requires _id value
+            posts.forEach(function(post) {
+                var emberPost = {
+                    id: post._id,
+                    user: post.user,
+                    body: post.body,
+                    createdDate: post.createdDate
+                };
+                emberPosts.push(emberPost);
+            });
+            return res.send({'posts': emberPosts});
         });
-        return res.send({'posts': emberPosts});
-    });
+    } 
+
+    else {
+        // find and send all posts that we have in the database which we have in the route at the moment
+        var query = {};
+        Post.find(query, function(err, posts) {
+            if (err) {
+                // console.log('sending 404');
+                return res.status(404).end();
+            }
+            
+            // Mongo requires _id value
+            posts.forEach(function(post) {
+                var emberPost = {
+                    id: post._id,
+                    user: post.user,
+                    body: post.body,
+                    createdDate: post.createdDate
+                };
+                emberPosts.push(emberPost);
+            });
+            return res.send({'posts': emberPosts});
+        });
+    }
 });
 
 app.post('/api/posts', ensureAuthenticated, function(req, res) {
@@ -234,11 +258,21 @@ app.post('/api/posts', ensureAuthenticated, function(req, res) {
     }
 });
 
-// Logout requests
+app.delete('/api/posts/:id', ensureAuthenticated, function(req, res) {
+    Post.remove({ _id: req.params.id }, function (err) {
+        if (err) {
+            console.log(err);
+            return res.status(404).end();
+        }
+        return res.send({});
+    });
+});
+
 app.get('/api/logout', function(req, res) {
     req.logout();
     res.status(200).end();
 });
+
 
 
 
