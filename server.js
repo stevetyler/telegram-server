@@ -97,6 +97,8 @@ app.get('/api/users', function(req, res) {
     var operation = req.query.operation;
     var user;
     
+    // use forEach to convert user to emberUser in all arrays eg posts
+
     if (operation === 'login') {
         passport.authenticate('local', function(err, user, info) {
             logger.info(user);
@@ -115,6 +117,52 @@ app.get('/api/users', function(req, res) {
                 return res.send({'users': [user]});
             });
         })(req, res);
+    }
+    else if (req.query.followUserId) {
+        var loggedInUser = req.user;
+        // add followerUserId to followersOf array and vice versa
+
+        // User.update (mongoose)  $push mongodb method   
+
+    }
+    else if (req.query.unFollowUserId) {
+        // $pull to remove
+
+
+
+
+    }
+
+    else if (req.query.followersOf) {
+        var userId = req.query.followersOf;
+
+        console.log('success');
+        User.findOne({id: userId}, function(err, user) {
+            if (err) {
+                console.log(err);
+                return res.status(404).end();
+            }
+            var followersIds = user.followers;
+            User.find({id: {$in:followersIds}}, function(err, users) {
+                if (err) {
+                    return res.status(400).end();
+                }
+                return res.send({'users': users});
+            });
+          
+        });
+    }
+    else if (req.query.followedBy) {
+        query = {user: req.query.followedBy};
+        console.log('success');
+        User.find(query, function(err, users) {
+            if (err) {
+                console.log(query);
+                return res.status(404).end();
+            }
+        
+            return res.send({'users': users});
+        });
     }
     else if (operation === 'authenticated') {
         if (req.isAuthenticated()) {
@@ -152,7 +200,8 @@ app.post('/api/users', function(req, res) {
                         if (err) {
                             return res.status(500).end();
                         }
-                        return res.send({'user': req.body.user});
+                        var emberUser = makeEmberUser(req.body.user, null);
+                        return res.send({'user': emberUser});
                     });
                 });
             }
@@ -160,8 +209,32 @@ app.post('/api/users', function(req, res) {
     }
 });
 
+function isFollowed(user, loggedInUser) {
+    // check if loggedInUser exists search 
+    if (!loggedInUser) {
+        return false
+    }
+
+
+    // return true if user is followed by loggedInUser
+    // check inside objects 
+
+
+}
+
+function makeEmberUser(user, loggedInUser) {
+    var emberUser = {
+            id: user.id,
+            name: user.name,
+            imageURL: user.imageURL,
+            followed: isFollowed(user, loggedInUser)
+        }
+    return emberUser;
+}
+
 app.get('/api/users/:id', function(req, res) {
     var userId = req.params.id;
+    var loggedInUser = req.user;
 
     User.findOne({id: userId}, function(err, user) {
         if (err) {
@@ -170,7 +243,11 @@ app.get('/api/users/:id', function(req, res) {
         if (!user) {
             return res.status(404).end();
         }
-        res.send({'user': user});
+        var emberUser = makeEmberUser(user, loggedInUser);
+
+
+
+        res.send({'user': emberUser});
     });
 });
 
@@ -179,9 +256,10 @@ app.get('/api/users/:id', function(req, res) {
 app.get('/api/posts', function(req, res) {
     
     var emberPosts = [];
+    var query = {};
     // Find and send all posts authored by req.query.ownedBy
     if (req.query.ownedBy) {
-        var query = {user: req.query.ownedBy};
+        query = {user: req.query.ownedBy};
         console.log('success');
         Post.find(query, function(err, posts) {
             if (err) {
@@ -205,7 +283,7 @@ app.get('/api/posts', function(req, res) {
 
     else {
         // find and send all posts that we have in the database which we have in the route at the moment
-        var query = {};
+        
         Post.find(query, function(err, posts) {
             if (err) {
                 // console.log('sending 404');
