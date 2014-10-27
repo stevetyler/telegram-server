@@ -135,7 +135,6 @@ app.get('/api/users', function(req, res) {
             }
 
         );
-        User.update();
 
         // async won't work, use callback ?
         User.findOneAndUpdate(
@@ -151,13 +150,10 @@ app.get('/api/users', function(req, res) {
             }
 
         );
-        User.update(); // update User in Mongoose
+        
     }
-    
-
 
     else if (req.query.unFollowUserId) {
-        // $pull to remove
         loggedInUser = req.user;
         // add followerUserId to followersOf array and vice versa
         User.findOneAndUpdate(
@@ -172,7 +168,6 @@ app.get('/api/users', function(req, res) {
                 }
             }
         );
-        User.update(); // update User in Mongoose
 
         // async won't work, use callback ?
         User.findOneAndUpdate(
@@ -187,7 +182,7 @@ app.get('/api/users', function(req, res) {
                 }
             }
         );
-        User.update(); // update User in Mongoose
+        
     }
 
     else if (req.query.followersOf) {
