@@ -95,7 +95,7 @@ function ensureAuthenticated(req, res, done) {
 
 app.get('/api/users', function(req, res) {
     var operation = req.query.operation;
-    var user;
+    var user, userId, loggedInUser;
     
     // use forEach to convert user to emberUser in all arrays eg posts
 
@@ -118,23 +118,80 @@ app.get('/api/users', function(req, res) {
             });
         })(req, res);
     }
-    else if (req.query.followUserId) {
-        var loggedInUser = req.user;
+
+    else if (req.query.followUserId) { 
+        loggedInUser = req.user;
         // add followerUserId to followersOf array and vice versa
+        User.findOneAndUpdate(
+            {id: followUserId}, // query
+            {$push: {followers: loggedInUser}}, // use addToSet instead?
+            function (err, user) {
+                if (err) {
+                    return res.send(403);
+                }
+                else {
+                    return {'user': user.id};
+                }
+            }
 
-        // User.update (mongoose)  $push mongodb method   
+        );
+        User.update();
 
+        // async won't work ?? Use separate function ?
+        User.findOneAndUpdate(
+            {id: loggedInUser}, // query
+            {$push: {following: followUserId}}, // use addToSet instead?
+            function (err, user) {
+                if (err) {
+                    return res.send(403);
+                }
+                else {
+                    return {'user': user.id};
+                }
+            }
+
+        );
+        User.update(); // update User in Mongoose
     }
+    
+
+
     else if (req.query.unFollowUserId) {
         // $pull to remove
+        loggedInUser = req.user;
+        // add followerUserId to followersOf array and vice versa
+        User.findOneAndUpdate(
+            {id: unFollowUserId}, // query
+            {$pull: {followers: loggedInUser}}, // use addToSet instead?
+            function (err, user) {
+                if (err) {
+                    return res.send(403);
+                }
+                else {
+                    return {'user': user.id};
+                }
+            }
+        );
+        User.update(); // update User in Mongoose
 
-
-
-
+        // async won't work ?
+        User.findOneAndUpdate(
+            {id: loggedInUserId}, // query
+            {$pull: {following: unFollowUserId}}, // use addToSet instead?
+            function (err, user) {
+                if (err) {
+                    return res.send(403);
+                }
+                else {
+                    return {'user': user.id};
+                }
+            }
+        );
+        User.update(); // update User in Mongoose
     }
 
     else if (req.query.followersOf) {
-        var userId = req.query.followersOf;
+        userId = req.query.followersOf;
 
         console.log('success');
         User.findOne({id: userId}, function(err, user) {
@@ -153,17 +210,26 @@ app.get('/api/users', function(req, res) {
         });
     }
     else if (req.query.followedBy) {
-        query = {user: req.query.followedBy};
+        userId = req.query.followedBy;
+
         console.log('success');
-        User.find(query, function(err, users) {
+        User.findOne({id: userId}, function(err, user) {
             if (err) {
-                console.log(query);
+                console.log(err);
                 return res.status(404).end();
             }
-        
-            return res.send({'users': users});
+            var followingIds = user.following;
+            User.find({id: {$in:followingIds}}, function(err, users) {
+                if (err) {
+                    return res.status(400).end();
+                }
+                return res.send({'users': users});
+            });
+          
         });
     }
+
+
     else if (operation === 'authenticated') {
         if (req.isAuthenticated()) {
             return res.send({'users': [req.user]});
@@ -183,7 +249,6 @@ app.get('/api/users', function(req, res) {
 });
 
 app.post('/api/users', function(req, res) {
-
     if (req.body.user) {
         User.findOne({id: req.body.user.id}, function (err, user) {
             if (user) {
@@ -209,17 +274,26 @@ app.post('/api/users', function(req, res) {
     }
 });
 
+// returns true if user is followed by loggedInUser or otherwise false
 function isFollowed(user, loggedInUser) {
-    // check if loggedInUser exists search 
-    if (!loggedInUser) {
-        return false
-    }
-
+    var loggedInUserId = loggedInUser.id;
+    // check if loggedInUser exists in user.followers array
+    User.findOne({id: user.id, $in: {followers: loggedInUserId}}, 
+        function(err, user) {
+            if (err) {
+                console.log(err);
+                return res.status(404).end();
+            }
+            else if (user) {
+                return true;
+            }
+            else {
+                return false;
+            } 
+        });
 
     // return true if user is followed by loggedInUser
     // check inside objects 
-
-
 }
 
 function makeEmberUser(user, loggedInUser) {
@@ -228,9 +302,11 @@ function makeEmberUser(user, loggedInUser) {
             name: user.name,
             imageURL: user.imageURL,
             followed: isFollowed(user, loggedInUser)
-        }
+        };
     return emberUser;
 }
+
+
 
 app.get('/api/users/:id', function(req, res) {
     var userId = req.params.id;
@@ -279,8 +355,7 @@ app.get('/api/posts', function(req, res) {
             });
             return res.send({'posts': emberPosts});
         });
-    } 
-
+    }
     else {
         // find and send all posts that we have in the database which we have in the route at the moment
         
