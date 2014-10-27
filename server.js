@@ -137,7 +137,7 @@ app.get('/api/users', function(req, res) {
         );
         User.update();
 
-        // async won't work ?? Use separate function ?
+        // async won't work, use callback ?
         User.findOneAndUpdate(
             {id: loggedInUser}, // query
             {$push: {following: followUserId}}, // use addToSet instead?
@@ -174,7 +174,7 @@ app.get('/api/users', function(req, res) {
         );
         User.update(); // update User in Mongoose
 
-        // async won't work ?
+        // async won't work, use callback ?
         User.findOneAndUpdate(
             {id: loggedInUserId}, // query
             {$pull: {following: unFollowUserId}}, // use addToSet instead?
