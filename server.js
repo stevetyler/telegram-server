@@ -6,6 +6,7 @@ var cookieParser = require('cookie-parser');
 var passport = require('passport');
 var LocalStrategy = require('passport-local').Strategy;
 var logger = require('nlogger').logger(module);
+var async = require('async');
 
 var app = express();
 var server = app.listen(3000, function() {
@@ -81,7 +82,209 @@ passport.deserializeUser(function(id, done) {
     });
 });
 
-function ensureAuthenticated(req, res, done) {
+
+// Function definitions
+
+// returns true if user is followed by loggedInUser or otherwise false
+function isFollowed(followUser, loggedInUserId) {
+    User.findOne({id: followUser.id}, function(err, user) {
+        if (err) {
+            console.log(err);
+            return res.status(404).end();
+        }
+        User.find({id: {$in:followers}}, function(err, users) {
+            if (err) {
+                return res.status(400).end();
+            }
+            else if (user) {
+                return true;
+            }
+            else {
+                return false;
+            }
+        });
+    });
+}
+
+function makeEmberUser(followUser, loggedInUserId) {
+    var emberUser = {
+        id: followUser.id,
+        name: followUser.name,
+        imageURL: user.imageURL,
+        followed: isFollowed(followUser, loggedInUserId)
+    };
+    return emberUser;
+}
+
+function addFollower(followUserId, loggedInUserId, done) {
+    User.findOneAndUpdate(
+        {id: followUserId}, // query
+        {$push: {followers: loggedInUserId}}, // use addToSet instead?
+        function (err, user) {
+            if (err) {
+                return done(err);
+            }
+            done(null);
+        }
+    );
+}
+    
+function addFollowing(loggedInUserId, followUserId, done) {
+    User.findOneAndUpdate(
+        {id: loggedInUserId}, // query
+        {$push: {following: followUserId}}, // use addToSet instead?
+        function (err, user) {
+            if (err) {
+                return done(err);
+            }
+            done(null);
+        }      
+    );
+}
+
+// change to id as above
+function removeFollower(unfollowUserId, loggedInUserId, done) {
+    User.findOneAndUpdate(
+        {id: unFollowUserId}, // query
+        {$pull: {followers: loggedInUserId}}, // use addToSet instead?
+        function (err, user) {
+            if (err) {
+                return done(err);
+            }
+            done(null);
+        }      
+    );
+}
+  
+function removeFollowing(loggedInUserId, unfollowUserId, done) {
+    User.findOneAndUpdate(
+        {id: loggedInUserId}, // query
+        {$pull: {following: unFollowUserId}}, // use addToSet instead?
+        function (err, user) {
+            if (err) {
+                return done(err);
+            }
+            done(null);
+        }
+    );
+}
+
+function handleFollowRequest(req, res) {
+    async.parallel([
+        function(done){
+            var followUserId = req.query.followUserId;
+            var loggedInUserId = req.user.id;
+            addFollower(followUserId, loggedInUserId, function(err) {
+                // callback function provided by async similar to done();
+                done(err);
+            });
+        },
+        function(done){
+            var loggedInUserId = req.user.id;
+            var followUserId = req.query.followUserId;
+            addFollowing(loggedInUserId, followUserId, function(err){
+                done(err);
+            });
+        }
+    ], function(err){
+        if (err) {
+            return res.status(500).end();
+        }
+        return res.send({'users': []});
+    });
+}
+
+function handleUnFollowRequest(req, res) {
+    async.parallel([
+        function(done){
+            var unFollowUserId = req.query.unFollowUserId;
+            var loggedInUserId = req.user.id;
+            removeFollower(unFollowUserId, loggedInUserId, function(err) {
+                // callback function provided by async similar to done();
+                done(err);
+            });
+        },
+        function(done){
+            var unFollowUserId = req.query.unFollowUserId;
+            var loggedInUserId = req.user.id;
+            removeFollowing(loggedInUserId, unFollowerUserId, function(err) {
+                done(err);
+            });
+        }
+    ], function(err) {
+        if (err) {
+            return res.status(500).end();
+        }
+        return res.send({'users': []});
+    });
+}
+
+// fix
+function handleFollowersRequest(req, res) {
+    // userId = req.query.followersOf;  //  ????
+    // console.log('success');
+    var emberArray = [];
+
+    User.findOne({id: userId}, function(err, user) {
+        if (err) {
+            console.log(err);
+            return res.status(404).end();
+        }
+        var followersIds = user.followers;
+        User.find({id: {$in: user.followers}}, function(err, users) {
+            if (err) {
+                return res.status(400).end();
+            }
+            return res.send({'users': emberArray});
+        });
+    });
+}
+
+// fix
+function handleFollowingRequest(req, res) {
+    // userId = req.query.followedBy;
+    // console.log('success');
+    User.findOne({id: userId}, function(err, user) {
+        if (err) {
+            console.log(err);
+            return res.status(404).end();
+        }
+        var followingIds = user.following;
+        User.find({id: {$in:followingIds}}, function(err, users) {
+            if (err) {
+                return res.status(400).end();
+            }
+            return res.send({'users': users});
+        });
+    });
+}
+
+function handleLoginRequest(req, res) {
+    passport.authenticate('local', function(err, user, info) {
+            logger.info(user);
+            if (err) {
+                return res.status(500).end();
+            }
+            if (!user) {
+                return res.status(404).end();
+            }
+            // req.logIn sets cookie
+            req.logIn(user, function(err) {
+                if (err) {
+                    return res.status(500).end();
+                }
+                return res.send({'users': [user]});
+            });
+        })(req, res);
+}
+
+function handleLogoutRequest(req, res) {
+    // logger.info('Logging Out');
+    req.logout();
+    return res.send({ users: {} });
+}
+
+function handleAuthenticatingRequest(req, res, done) {
     if (req.isAuthenticated()) {
         return done();
     }
@@ -90,149 +293,32 @@ function ensureAuthenticated(req, res, done) {
     }
 }
 
+function handleResetPassword(req, res) {
 
-// Users route requests 
+}
+
+
+// Get requests 
 
 app.get('/api/users', function(req, res) {
     var operation = req.query.operation;
     var user, userId, loggedInUser;
+    console.log(operation);
     
     // use forEach to convert user to emberUser in all arrays eg posts
 
-    if (operation === 'login') {
-        passport.authenticate('local', function(err, user, info) {
-            logger.info(user);
-            if (err) {
-                // sends status only.
-                return res.status(500).end();
-            }
-            if (!user) {
-                return res.status(404).end();
-            }
-            // sets cookie
-            req.logIn(user, function(err) {
-                if (err) {
-                    return res.status(500).end();
-                }
-                return res.send({'users': [user]});
-            });
-        })(req, res);
-    }
+    if (operation === 'login') { handleLoginRequest(req, res); }
 
-    else if (req.query.followUserId) { 
-        loggedInUser = req.user;
-        // add followerUserId to followersOf array and vice versa
-        User.findOneAndUpdate(
-            {id: followUserId}, // query
-            {$push: {followers: loggedInUser}}, // use addToSet instead?
-            function (err, user) {
-                if (err) {
-                    return res.send(403);
-                }
-                else {
-                    return {'user': user.id};
-                }
-            }
+    else if (operation === 'authenticated') { handleAuthenticatingRequest(req, res); }
 
-        );
+    else if (req.query.followUserId) { handleFollowRequest(req, res); }
 
-        // async won't work, use callback ?
-        User.findOneAndUpdate(
-            {id: loggedInUser}, // query
-            {$push: {following: followUserId}}, // use addToSet instead?
-            function (err, user) {
-                if (err) {
-                    return res.send(403);
-                }
-                else {
-                    return {'user': user.id};
-                }
-            }
+    else if (req.query.unFollowUserId) { handleUnFollowRequest(req, res); }
 
-        );
-        
-    }
+    else if (req.query.followersOf) { handleFollowersRequest(req, res); }
 
-    else if (req.query.unFollowUserId) {
-        loggedInUser = req.user;
-        // add followerUserId to followersOf array and vice versa
-        User.findOneAndUpdate(
-            {id: unFollowUserId}, // query
-            {$pull: {followers: loggedInUser}}, // use addToSet instead?
-            function (err, user) {
-                if (err) {
-                    return res.send(403);
-                }
-                else {
-                    return {'user': user.id};
-                }
-            }
-        );
+    else if (req.query.followedBy) { handleFollowingRequest(req, res) }
 
-        // async won't work, use callback ?
-        User.findOneAndUpdate(
-            {id: loggedInUserId}, // query
-            {$pull: {following: unFollowUserId}}, // use addToSet instead?
-            function (err, user) {
-                if (err) {
-                    return res.send(403);
-                }
-                else {
-                    return {'user': user.id};
-                }
-            }
-        );
-        
-    }
-
-    else if (req.query.followersOf) {
-        userId = req.query.followersOf;
-
-        console.log('success');
-        User.findOne({id: userId}, function(err, user) {
-            if (err) {
-                console.log(err);
-                return res.status(404).end();
-            }
-            var followersIds = user.followers;
-            User.find({id: {$in:followersIds}}, function(err, users) {
-                if (err) {
-                    return res.status(400).end();
-                }
-                return res.send({'users': users});
-            });
-          
-        });
-    }
-    else if (req.query.followedBy) {
-        userId = req.query.followedBy;
-
-        console.log('success');
-        User.findOne({id: userId}, function(err, user) {
-            if (err) {
-                console.log(err);
-                return res.status(404).end();
-            }
-            var followingIds = user.following;
-            User.find({id: {$in:followingIds}}, function(err, users) {
-                if (err) {
-                    return res.status(400).end();
-                }
-                return res.send({'users': users});
-            });
-          
-        });
-    }
-
-
-    else if (operation === 'authenticated') {
-        if (req.isAuthenticated()) {
-            return res.send({'users': [req.user]});
-        }
-        else {
-            return res.send({'users': []});
-        }
-    }
     else {
         User.find({}, function(err, users) {
             if (err) {
@@ -242,66 +328,6 @@ app.get('/api/users', function(req, res) {
         });
     }
 });
-
-app.post('/api/users', function(req, res) {
-    if (req.body.user) {
-        User.findOne({id: req.body.user.id}, function (err, user) {
-            if (user) {
-                // user already exists
-                res.status(400).end();
-            }
-            else {
-                var newUser = new User(req.body.user);
-                newUser.save(function(err, user){
-                    if (err) {
-                        return res.status(500).end();
-                    }
-                    req.logIn(user, function(err) {
-                        if (err) {
-                            return res.status(500).end();
-                        }
-                        var emberUser = makeEmberUser(req.body.user, null);
-                        return res.send({'user': emberUser});
-                    });
-                });
-            }
-        });
-    }
-});
-
-// returns true if user is followed by loggedInUser or otherwise false
-function isFollowed(user, loggedInUser) {
-    var loggedInUserId = loggedInUser.id;
-    // check if loggedInUser exists in user.followers array
-    User.findOne({id: user.id, $in: {followers: loggedInUserId}}, 
-        function(err, user) {
-            if (err) {
-                console.log(err);
-                return res.status(404).end();
-            }
-            else if (user) {
-                return true;
-            }
-            else {
-                return false;
-            } 
-        });
-
-    // return true if user is followed by loggedInUser
-    // check inside objects 
-}
-
-function makeEmberUser(user, loggedInUser) {
-    var emberUser = {
-            id: user.id,
-            name: user.name,
-            imageURL: user.imageURL,
-            followed: isFollowed(user, loggedInUser)
-        };
-    return emberUser;
-}
-
-
 
 app.get('/api/users/:id', function(req, res) {
     var userId = req.params.id;
@@ -316,13 +342,9 @@ app.get('/api/users/:id', function(req, res) {
         }
         var emberUser = makeEmberUser(user, loggedInUser);
 
-
-
         res.send({'user': emberUser});
     });
 });
-
-// Posts route requests
 
 app.get('/api/posts', function(req, res) {
     
@@ -353,7 +375,6 @@ app.get('/api/posts', function(req, res) {
     }
     else {
         // find and send all posts that we have in the database which we have in the route at the moment
-        
         Post.find(query, function(err, posts) {
             if (err) {
                 // console.log('sending 404');
@@ -371,6 +392,40 @@ app.get('/api/posts', function(req, res) {
                 emberPosts.push(emberPost);
             });
             return res.send({'posts': emberPosts});
+        });
+    }
+});
+
+app.get('/api/logout', function(req, res) {
+    req.logout();
+    res.status(200).end();
+});
+
+
+// Post requests
+
+app.post('/api/users', function(req, res) {
+    if (req.body.user) {
+        User.findOne({id: req.body.user.id}, function (err, user) {
+            if (user) {
+                // user already exists
+                res.status(400).end();
+            }
+            else {
+                var newUser = new User(req.body.user);
+                newUser.save(function(err, user){
+                    if (err) {
+                        return res.status(500).end();
+                    }
+                    req.logIn(user, function(err) {
+                        if (err) {
+                            return res.status(500).end();
+                        }
+                        var emberUser = makeEmberUser(req.body.user, null);
+                        return res.send({'user': emberUser});
+                    });
+                });
+            }
         });
     }
 });
@@ -416,10 +471,6 @@ app.delete('/api/posts/:id', ensureAuthenticated, function(req, res) {
     });
 });
 
-app.get('/api/logout', function(req, res) {
-    req.logout();
-    res.status(200).end();
-});
 
 
 
