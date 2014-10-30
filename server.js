@@ -231,6 +231,8 @@ function handleUnFollowRequest(req, res) {
 
 // fix
 function handleFollowersRequest(req, res) {
+    // user controller : followUserId: IdToFollow
+    
     // userId = req.query.followersOf;  //  ????
     // console.log('success');
     var emberArray = [];
