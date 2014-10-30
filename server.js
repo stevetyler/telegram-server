@@ -85,16 +85,26 @@ passport.deserializeUser(function(id, done) {
 
 // Function definitions
 
+function ensureAuthenticated(req, res, done) { 
+    // Express authentication function using Passport
+    if (req.isAuthenticated()) {
+        return done();
+    }
+    else {
+        return res.status(403).end();
+    }
+}
+
 // returns true if user is followed by loggedInUser or otherwise false
-function isFollowed(followUser, loggedInUserId) {
-    User.findOne({id: followUser.id}, function(err, user) {
+function isFollowed(followUserId, loggedInUserId) {
+    User.findOne({id: followUserId}, function(err, user) {
         if (err) {
             console.log(err);
             return res.status(404).end();
         }
-        User.find({id: {$in:followers}}, function(err, users) {
+        User.find({followers: {$in:loggedInUserId}}, function(err, users) {
             if (err) {
-                return res.status(400).end();
+                return err;
             }
             else if (user) {
                 return true;
@@ -110,10 +120,10 @@ function makeEmberUser(followUser, loggedInUserId) {
     var emberUser = {
         id: followUser.id,
         name: followUser.name,
-        imageURL: user.imageURL,
+        imageURL: followUser.imageURL,
         followed: isFollowed(followUser, loggedInUserId)
     };
-    return emberUser;
+    return emberUser; // res.send({'user': emberUser}) ?
 }
 
 function addFollower(followUserId, loggedInUserId, done) {
@@ -138,7 +148,7 @@ function addFollowing(loggedInUserId, followUserId, done) {
                 return done(err);
             }
             done(null);
-        }      
+        }  
     );
 }
 
@@ -284,12 +294,13 @@ function handleLogoutRequest(req, res) {
     return res.send({ users: {} });
 }
 
-function handleAuthenticatingRequest(req, res, done) {
+
+
+function handleIsAuthenticatedRequest(req, res) {
     if (req.isAuthenticated()) {
-        return done();
-    }
-    else {
-        return res.status(403).end();
+        return res.send({ users:[req.user] });
+    } else {
+        return res.send({ users: [] } );
     }
 }
 
@@ -303,13 +314,13 @@ function handleResetPassword(req, res) {
 app.get('/api/users', function(req, res) {
     var operation = req.query.operation;
     var user, userId, loggedInUser;
-    console.log(operation);
+    // console.log(operation);
     
     // use forEach to convert user to emberUser in all arrays eg posts
 
     if (operation === 'login') { handleLoginRequest(req, res); }
 
-    else if (operation === 'authenticated') { handleAuthenticatingRequest(req, res); }
+    else if (operation === 'authenticated') { handleIsAuthenticatedRequest(req, res); }
 
     else if (req.query.followUserId) { handleFollowRequest(req, res); }
 
@@ -317,7 +328,7 @@ app.get('/api/users', function(req, res) {
 
     else if (req.query.followersOf) { handleFollowersRequest(req, res); }
 
-    else if (req.query.followedBy) { handleFollowingRequest(req, res) }
+    else if (req.query.followedBy) { handleFollowingRequest(req, res); }
 
     else {
         User.find({}, function(err, users) {
