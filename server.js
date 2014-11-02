@@ -244,7 +244,7 @@ function handleFollowersRequest(req, res) {
             }
 
             followers.forEach(function(follower) {
-                emberArray.push(makeEmberUser(follower));
+                emberArray.push(makeEmberUser(follower, user));
 
             });
 
@@ -254,6 +254,7 @@ function handleFollowersRequest(req, res) {
 }
 
 function handleFollowingRequest(req, res) {
+    var user = req.user;
     var userId = req.query.userId;
     var emberArray = [];
 
@@ -271,7 +272,7 @@ function handleFollowingRequest(req, res) {
             }
 
             following.forEach(function(following) {
-                emberArray.push(makeEmberUser(following));
+                emberArray.push(makeEmberUser(following, user));
 
             });
 
