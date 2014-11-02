@@ -95,7 +95,7 @@ function ensureAuthenticated(req, res, done) {
     }
 }
 
-// returns true if user is followed by loggedInUser or otherwise false
+// returns true if user is followed by loggedInUser
 function isFollowed(user, loggedInUser) {
     
     var followers = user.followers;
@@ -226,6 +226,7 @@ function handleUnFollowRequest(req, res) {
 }
 
 function handleFollowersRequest(req, res) {
+    var user = req.user;
     var userId = req.query.userId; // change in action
     var emberArray = [];
 
@@ -258,7 +259,7 @@ function handleFollowingRequest(req, res) {
 
     logger.info('Get users following : ', userId);
 
-    User.findOne({id: userId}, function(err, userId) {
+    User.findOne({id: userId}, function(err, user) {
         if (err) {
             console.log(err);
             return res.status(404).end();
@@ -339,8 +340,6 @@ app.get('/api/users', function(req, res) {
     else if (req.query.followUserId) { handleFollowRequest(req, res); }
 
     else if (req.query.unFollowUserId) { handleUnFollowRequest(req, res); }
-
-    
 
     else {
         User.find({}, function(err, users) {
