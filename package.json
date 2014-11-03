@@ -11,7 +11,8 @@
     "passport-local": "~1.0.0",
     "mongoose": "~3.8.17",
     "async": "~0.9.0",
-    "connect-mongostore": "~0.1.4"
+    "connect-mongostore": "~0.1.4",
+    "bcrypt": "~0.8.0"
   },
   "devDependencies": {
     "body-parser": "~1.9.0",
