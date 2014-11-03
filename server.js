@@ -8,6 +8,7 @@ var passport = require('passport');
 var LocalStrategy = require('passport-local').Strategy;
 var logger = require('nlogger').logger(module);
 var async = require('async');
+var bcrypt = require('bcrypt');
 
 var app = express();
 var server = app.listen(3000, function() {
@@ -51,7 +52,7 @@ app.use(session({
     resave: true,  // forces session to be saved even when unmodified
     saveUninitialized: true,  // forces a new unmodified session to be saved to the store. 
     rolling: false,  // reset expiration date setting cookie on every response
-    store: new MongoStore({'db': 'sessions'})
+    store: new MongoStore({'db': 'sessions'}) // persistent sessions
 }));
 app.use(passport.initialize());
 app.use(passport.session());
@@ -65,7 +66,20 @@ passport.use(new LocalStrategy(
             if (!user) {
                 return done(null, null, {message: 'Incorrect username'});
             }
-            return done(null, user, null);
+            bcrypt.compare(password, user.password, function(err, res) {
+                if (err) {
+                    logger.error('Bcrypt password compare error: ', err);
+                }
+                if (res) {
+                    // logger.info('Bcrypt passed: ', res);
+                    // logger.info('local returning user: ', user.id);
+                    return done(null, user);
+                } else {
+                    // logger.warn('Bcrypt failed: ', 'query: ',password);
+                    // logger.warn( ' user.password: ', user.password);
+                    return done(null, false, { message: 'Incorrect password.' } );
+                }
+            });
         });
     }
 ));
@@ -87,6 +101,23 @@ passport.deserializeUser(function(id, done) {
 
 // Function definitions
 
+function encryptPassword (savedPassword, cb) {
+    bcrypt.genSalt(10, function(err, salt) {
+        if (err) {
+            logger.error('genSalt: ', err);
+        }
+        logger.info('bcrypt: ', salt);
+        bcrypt.hash(savedPassword, salt, function(err, hash) {
+            if (err) {
+                logger.error('Hash Problem: ', err);
+                return res.status(403).end();
+            }
+            logger.info('Hashed Password: ', hash);
+            return cb(err, hash);
+        });
+    });
+}
+
 function ensureAuthenticated(req, res, done) {
     // Express authentication function using Passport
     if (req.isAuthenticated()) {
@@ -104,11 +135,9 @@ function isFollowed(user, loggedInUser) {
     var loggedInUserId = loggedInUser.id;
 
     if (followers.indexOf(loggedInUserId) !== -1) {
-        // console.log('following');
         return true;
     }
     else {
-        // console.log('not following');
         return false;
     }
 }
@@ -284,6 +313,7 @@ function handleFollowingRequest(req, res) {
 }
 
 function handleLoginRequest(req, res) {
+    // uses 'local' calback function created by new LocalStrategy
     passport.authenticate('local', function(err, user, info) {
             logger.info(user);
             if (err) {
@@ -328,9 +358,6 @@ function handleResetPassword(req, res) {
 app.get('/api/users', function(req, res) {
     var operation = req.query.operation;
     var user, userId, loggedInUser;
-    // console.log(operation);
-    
-    // use forEach to convert user to emberUser in all arrays eg posts
 
     if (operation === 'login') { handleLoginRequest(req, res); }
 
@@ -437,18 +464,38 @@ app.post('/api/users', function(req, res) {
                 res.status(400).end();
             }
             else {
-                var newUser = new User(req.body.user);
-                newUser.save(function(err, user){
-                    if (err) {
-                        return res.status(500).end();
+                var password = req.body.user.password;
+                async.series([
+                    function(done) {
+                        encryptPassword(password, function (err, encryptedPassword) {
+                            if (err) {
+                                done(err);
+                            }
+                            req.body.user.password = encryptedPassword;
+                            done(null, req.body.user);
+                        });
+                    },
+                    function(user, done) {
+                        var newUser = new User(req.body.user);
+                        newUser.save(function(err, user){
+                            if (err) {
+                                return res.status(500).end();
+                            }
+                            req.logIn(user, function(err) {
+                                if (err) {
+                                    return res.status(500).end();
+                                }
+                                var emberUser = makeEmberUser(req.body.user, null);
+                                return res.send({'user': emberUser});
+                            });
+                        });
                     }
-                    req.logIn(user, function(err) {
-                        if (err) {
-                            return res.status(500).end();
-                        }
-                        var emberUser = makeEmberUser(req.body.user, null);
-                        return res.send({'user': emberUser});
-                    });
+                ], function () {
+                    if (err) {
+                        res.status(500).end();
+                    }
+                    return res.send({user: newUser});
+
                 });
             }
         });
