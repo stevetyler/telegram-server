@@ -4,7 +4,7 @@ var MongoStore = require('connect-mongostore')(session);
 var bodyParser = require('body-parser');
 var cookieParser = require('cookie-parser');
 var passport = require('passport');
-var passwordGenerator = require('passwordGenerator');
+var passwordGenerator = require('password-generator');
 var Mailgun = require('mailgun-js');
 var LocalStrategy = require('passport-local').Strategy;
 var logger = require('nlogger').logger(module);
@@ -35,8 +35,14 @@ var postSchema = new Schema({
   body: String
 });
 
+mongoose.connect('mongodb://localhost/telegram');
+
 var User = mongoose.connection.model('User');
 var Post = mongoose.connection.model('Post');
+
+mongoose.connection.model('User', userSchema);
+mongoose.connection.model('Post', postSchema);
+
 
 var api_key = 'key-7932438a6fbbbe7ced17e09c849ad26f';
 var domain = 'sandboxefab4ad740d044ac9681ee7f2a19e813.mailgun.org';
@@ -52,10 +58,7 @@ var data = {
   text: 'Your new password is'
 };
 
-mongoose.connect('mongodb://localhost/telegram');
 
-mongoose.connection.model('User', userSchema);
-mongoose.connection.model('Post', postSchema);
 
 
 // Middleware
