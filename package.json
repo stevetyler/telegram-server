@@ -12,7 +12,9 @@
     "mongoose": "~3.8.17",
     "async": "~0.9.0",
     "connect-mongostore": "~0.1.4",
-    "bcrypt": "~0.8.0"
+    "bcrypt": "~0.8.0",
+    "password-generator": "~0.2.3",
+    "mailgun-js": "~0.6.7"
   },
   "devDependencies": {
     "body-parser": "~1.9.0",
