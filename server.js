@@ -4,6 +4,8 @@ var MongoStore = require('connect-mongostore')(session);
 var bodyParser = require('body-parser');
 var cookieParser = require('cookie-parser');
 var passport = require('passport');
+var passwordGenerator = require('passwordGenerator');
+var Mailgun = require('mailgun-js');
 var LocalStrategy = require('passport-local').Strategy;
 var logger = require('nlogger').logger(module);
 var async = require('async');
@@ -13,7 +15,6 @@ var app = express();
 var server = app.listen(3000, function() {
   console.log('Listening on port %d', server.address().port);
 });
-
 
 var mongoose = require('mongoose');
 var Schema = mongoose.Schema;
@@ -34,13 +35,28 @@ var postSchema = new Schema({
   body: String
 });
 
+var User = mongoose.connection.model('User');
+var Post = mongoose.connection.model('Post');
+
+var api_key = 'key-7932438a6fbbbe7ced17e09c849ad26f';
+var domain = 'sandboxefab4ad740d044ac9681ee7f2a19e813.mailgun.org';
+
+var myMailgun = new Mailgun({
+  apiKey: api_key, domain: domain
+});
+
+var data = {
+  from: 'Telegram <telegram@mailgun.org>',
+  to: '',
+  subject: 'Password Reset',
+  text: 'Your new password is'
+};
+
 mongoose.connect('mongodb://localhost/telegram');
 
 mongoose.connection.model('User', userSchema);
 mongoose.connection.model('Post', postSchema);
 
-var User = mongoose.connection.model('User');
-var Post = mongoose.connection.model('Post');
 
 // Middleware
 // app.use(express.static('public')); not needed
