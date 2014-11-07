@@ -1,3 +1,4 @@
+var db = require('./database/database');
 var express = require('express');
 var session = require('express-session');
 var MongoStore = require('connect-mongostore')(session);
@@ -10,38 +11,13 @@ var LocalStrategy = require('passport-local').Strategy;
 var logger = require('nlogger').logger(module);
 var async = require('async');
 var bcrypt = require('bcrypt');
-// var md5 = require('MD5');
 var app = express();
 var server = app.listen(3000, function() {
   console.log('Listening on port %d', server.address().port);
 });
 
-var mongoose = require('mongoose');
-var Schema = mongoose.Schema;
-
-var userSchema = new Schema({
-  id: String,
-  name: String,
-  password: String,
-  imageURL: String,
-  followers: [String],
-  following: [String]
-});
-
-var postSchema = new Schema({
-  id: String,
-  user: String,
-  createdDate: Date,
-  body: String
-});
-
-mongoose.connect('mongodb://localhost/telegram');
-
-var User = mongoose.connection.model('User');
-var Post = mongoose.connection.model('Post');
-
-mongoose.connection.model('User', userSchema);
-mongoose.connection.model('Post', postSchema);
+var User = db.model('User');
+var Post = db.model('Post');
 
 
 var api_key = 'key-7932438a6fbbbe7ced17e09c849ad26f';
@@ -57,8 +33,6 @@ var data = {
   subject: 'Password Reset',
   text: 'Your new password is'
 };
-
-
 
 
 // Middleware
