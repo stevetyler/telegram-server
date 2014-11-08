@@ -10,7 +10,7 @@ var Mailgun = require('mailgun-js');
 var LocalStrategy = require('passport-local').Strategy;
 var logger = require('nlogger').logger(module);
 var async = require('async');
-var bcrypt = require('bcrypt');
+// var bcrypt = require('bcrypt');
 var app = express();
 var server = app.listen(3000, function() {
   console.log('Listening on port %d', server.address().port);
