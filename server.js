@@ -283,6 +283,34 @@ function handleResetPassword(req, res) {
 
 }
 
+function assignAvatar(id) {
+	var image, path;
+
+	switch (id) {
+		case 'css-tricks' : image = 'css-tricks.jpg';
+		break;
+		case 'ember-london' : image = 'ember-london.jpg';
+		break;
+		case 'js-daily' : image = 'js-daily.jpg';
+		break;
+		case 'rach' : image = 'rach.jpg';
+		break;
+		case 'sitepoint' : image = 'sitepoint.jpg';
+		break;
+		case 'steve' : image = 'steve.jpg';
+		break;
+		case 'talent-buddy' : image = 'talent-buddy.jpg';
+		break;
+		case 'tech-insight' : image = 'tech-insight.jpg';
+		break;
+		case 'vlad' : image = 'vlad.jpg';
+		break;
+		default : image = 'guest-male.jpg';
+	}
+	path = '/assets/img/avatars/' + image;
+	return path;
+}
+
 
 // Get requests 
 
@@ -418,6 +446,7 @@ app.post('/api/users', function(req, res) {
                 done(err);
               }
               req.body.user.password = encryptedPassword;
+              req.body.user.imageURL = assignAvatar(req.body.user.id);
               done(null, req.body.user);
             });
           },
