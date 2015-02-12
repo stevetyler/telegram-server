@@ -305,12 +305,11 @@ function assignAvatar(id) {
 		break;
 		case 'vlad' : image = 'vlad.jpg';
 		break;
-		default : image = 'guest-male.jpg';
+		default : image = 'guest.jpg';
 	}
 	path = '/assets/img/avatars/' + image;
 	return path;
 }
-
 
 // Get requests 
 
