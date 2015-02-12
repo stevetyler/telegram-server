@@ -5,6 +5,8 @@ var mongoose = require('mongoose');
 var userSchema = require('../schemas/user');
 var postSchema = require('../schemas/post');
 
+// TTL errors when creating new user :
+// http://stackoverflow.com/questions/22698661/mongodb-error-setting-ttl-index-on-collection-sessions
 mongoose.connect('mongodb://localhost/telegram');
 
 mongoose.connection.model('User', userSchema);
