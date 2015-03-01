@@ -64,16 +64,12 @@ function ensureAuthenticated(req, res, done) {
 
 // returns true if user is followed by loggedInUser
 function isFollowed(user, loggedInUser) {
-    
-  var followers = user.followers;
-  var loggedInUserId = loggedInUser.id;
-
-  if (followers.indexOf(loggedInUserId) !== -1) {
-    return true;
+  if (loggedInUser) {
+    var userIsFollowing = loggedInUser.following.indexOf(user.id) !== -1 ? true : false;
+    // logger.info('The loggedin user is following user \'' + user.id + '\': ', userIsFollowing);
+    user.isFollowed = userIsFollowing ? true : false;
   }
-  else {
-    return false;
-  }
+  return user;
 }
 
 function makeEmberUser(user, loggedInUser) {
@@ -268,8 +264,6 @@ function handleLogoutRequest(req, res) {
   req.logout();
   return res.send({ users: {} });
 }
-
-
 
 function handleIsAuthenticatedRequest(req, res) {
   if (req.isAuthenticated()) {
