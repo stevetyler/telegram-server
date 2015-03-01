@@ -305,6 +305,71 @@ function assignAvatar(id) {
 	return path;
 }
 
+function getMyStreamPosts (req, res) {
+  var users = [];
+  var query = {};
+  var emberPosts = [];
+
+  if (req.user) {
+    var search = req.user.following;
+    search.push(req.user.id);
+    query = {user: {$in: search}};
+    console.log(search);
+
+    Post.find(query, function(err, posts) {
+      if (err) {
+        console.log(query);
+        return res.status(404).end();
+      }
+      // Mongo requires _id value
+      posts.forEach(function(post) {
+        var emberPost = {
+          id: post._id,
+          user: post.user,
+          body: post.body,
+          createdDate: post.createdDate
+        };
+        emberPosts.push(emberPost);
+        users.push(post.user);
+      });
+      User.find({id: {$in: users}}, function(err, users) {
+        var postsUsers = [];
+        if (err) {
+          res.status(403).end();
+        }
+        users.forEach(function(user) {
+          var usr = new User(user);
+          postsUsers.push(usr);
+        });
+        logger.info(postsUsers);
+        return res.send({posts: emberPosts, users: postsUsers});
+      });
+    });
+  }
+}
+
+function getUserPosts(req, res) {
+  var emberPosts = [];
+  var query = {user: req.query.user};
+
+  Post.find(query, function(err, posts) {
+    if (err) {
+      // console.log('sending 404');
+      return res.status(404).end();
+    }      
+    posts.forEach(function(post) {
+      var emberPost = {
+        id: post._id,
+        user: post.user,
+        body: post.body,
+        createdDate: post.createdDate
+      };
+      emberPosts.push(emberPost);
+    });
+    return res.send({'posts': emberPosts});
+  });
+}
+
 // Get requests 
 
 app.get('/api/users', function(req, res) {
@@ -351,67 +416,14 @@ app.get('/api/users/:id', function(req, res) {
 });
 
 app.get('/api/posts', function(req, res) {
-  var users = [];
-  var emberPosts = [];
-  var query = {};
-  // Find and send all posts authored by req.query.ownedBy
-  if (req.user) {
-    var search = req.user.following;
-    search.push(req.user.id);
-    query = {user: {$in: search}};
-    console.log(search);
-
-    Post.find(query, function(err, posts) {
-      if (err) {
-        console.log(query);
-        return res.status(404).end();
-      }
-      
-      // Mongo requires _id value
-      posts.forEach(function(post) {
-        var emberPost = {
-          id: post._id,
-          user: post.user,
-          body: post.body,
-          createdDate: post.createdDate
-        };
-        emberPosts.push(emberPost);
-        users.push(post.user);
-      });
-      User.find({id: {$in: users}}, function(err, users) {
-        var postsUsers = [];
-        if (err) {
-          res.status(403).end();
-        }
-        users.forEach(function(user) {
-          var usr = new User(user);
-          postsUsers.push(usr);
-        });
-        logger.info(postsUsers);
-        return res.send({posts: emberPosts, users: postsUsers});
-      });
-    });
-  }
-  else {
-    // find and send all posts that we have in the database which we have in the route at the moment
-    Post.find(query, function(err, posts) {
-      if (err) {
-        // console.log('sending 404');
-        return res.status(404).end();
-      }
-      
-      // Mongo requires _id value
-      posts.forEach(function(post) {
-        var emberPost = {
-          id: post._id,
-          user: post.user,
-          body: post.body,
-          createdDate: post.createdDate
-        };
-        emberPosts.push(emberPost);
-      });
-      return res.send({'posts': emberPosts});
-    });
+  if (req.query.operation === 'myStream') {
+    logger.info('GET posts for myStream');
+    getPostsForDashBoard(req, res);
+  } else if (req.query.operation === 'userPosts') {
+      logger.info('GET posts for user/index route');
+      getPostsForUserIndex(req, res);
+  } else {
+      return res.status(500).end();
   }
 });
 
@@ -419,7 +431,6 @@ app.get('/api/logout', function(req, res) {
   req.logout();
   res.status(200).end();
 });
-
 
 // Post requests
 
