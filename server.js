@@ -356,7 +356,7 @@ function getUserPosts(req, res) {
     if (err) {
       // console.log('sending 404');
       return res.status(404).end();
-    }      
+    }
     posts.forEach(function(post) {
       var emberPost = {
         id: post._id,
@@ -417,11 +417,11 @@ app.get('/api/users/:id', function(req, res) {
 
 app.get('/api/posts', function(req, res) {
   if (req.query.operation === 'myStream') {
-    logger.info('GET posts for myStream');
-    getPostsForDashBoard(req, res);
+    // logger.info('GET posts for myStream');
+    getMyStreamPosts(req, res);
   } else if (req.query.operation === 'userPosts') {
-      logger.info('GET posts for user/index route');
-      getPostsForUserIndex(req, res);
+    // logger.info('GET posts for user/index route');
+    getUserPosts(req, res);
   } else {
       return res.status(500).end();
   }
