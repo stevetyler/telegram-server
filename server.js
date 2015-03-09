@@ -31,6 +31,8 @@ var data = {
 };
 
 require('./express-config')(app);
+// var myFunc = require('./express-config');
+// myFunc(app);
 
 
 // Function definitions
@@ -67,9 +69,9 @@ function isFollowed(user, loggedInUser) {
   if (loggedInUser) {
     var userIsFollowing = loggedInUser.following.indexOf(user.id) !== -1 ? true : false;
     // logger.info('The loggedin user is following user \'' + user.id + '\': ', userIsFollowing);
-    user.isFollowed = userIsFollowing ? true : false;
+    return userIsFollowing ? true : false;
   }
-  return user;
+  return false;
 }
 
 function makeEmberUser(user, loggedInUser) {
@@ -309,6 +311,7 @@ function getMyStreamPosts (req, res) {
   var users = [];
   var query = {};
   var emberPosts = [];
+  var loggedInUser = req.user;
 
   if (req.user) {
     var search = req.user.following;
@@ -338,7 +341,7 @@ function getMyStreamPosts (req, res) {
           res.status(403).end();
         }
         users.forEach(function(user) {
-          var usr = new User(user);
+          var usr = makeEmberUser(user, loggedInUser);
           postsUsers.push(usr);
         });
         logger.info(postsUsers);
