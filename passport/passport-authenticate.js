@@ -1,12 +1,10 @@
-
-var logger = require('nlogger').logger(module);
-var db = require('./../database/database');
-var User = db.model('User');
-var passport = require('passport');
-var LocalStrategy = require('passport-local').Strategy;
 var bcrypt = require('bcrypt');
-// var userUtil = require('../router/routes/user/user-util');
+var db = require('./../database/database');
+var LocalStrategy = require('passport-local').Strategy;
+var logger = require('nlogger').logger(module);
+var passport = require('passport');
 
+var User = db.model('User');
 
 passport.use(new LocalStrategy(
   function(username, password, done) {

@@ -1,11 +1,16 @@
+// var exports = module.exports = {};
 
-var db = require('./database/database');
+var db = require('../../../database/database');
 var logger = require('nlogger').logger(module);
+var router = require('express').Router(); // Router middleware
 var userUtils = require('../user/user-utils');
 
 var User = db.model('User');
 var Post = db.model('Post');
 
+/*
+* Requesting posts for My Stream or User Stream
+*/
 
 router.get('/', function(req, res) {
   if (req.query.operation === 'myStream') {
@@ -18,7 +23,6 @@ router.get('/', function(req, res) {
       return res.status(500).end();
   }
 });
-
 
 /*
 * Creating a post from MyStream
@@ -63,7 +67,7 @@ router.delete('/:id', userUtils.ensureAuthenticated, function(req, res) {
   });
 });
 
-
+// router.getMyStreamPosts method ?
 function getMyStreamPosts (req, res) {
   var users = [];
   var query = {};
@@ -130,7 +134,6 @@ function getUserPosts(req, res) {
   });
 }
 
-
-
-
 module.exports = router;
+
+
