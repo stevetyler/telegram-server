@@ -24,6 +24,7 @@ app.use(function(err, req, res, next) {
 
 // ?? ask Vlad
 // http://blog.mongolab.com/2013/11/deep-dive-into-connection-pooling/
+// waiting for 'open' event from mongoose.connection
 db.once('open', function() {
 	var server = app.listen(3000, function() {
   console.log('Listening on port %d', server.address().port);

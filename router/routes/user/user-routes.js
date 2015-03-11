@@ -7,6 +7,7 @@ var passwordGenerator = require('password-generator');
 var router = require('express').Router(); // Router middleware
 var userUtils = require('./user-utils');
 
+// model is schema plus connection - gateway to data
 var User = db.model('User');
 
 // user get requests
@@ -47,7 +48,7 @@ router.get('/:id', function(req, res) {
     if (!user) {
       return res.status(404).end();
     }
-    var emberUser = userUtils.makeEmberUser(user, loggedInUser);
+    var emberUser = user.makeEmberUser(loggedInUser);
 
     res.send({'user': emberUser});
   });

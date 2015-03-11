@@ -2,7 +2,8 @@ var bcrypt = require('bcrypt');
 var logger = require('nlogger').logger(module);
 var userUtils = exports; // why not module.exports = userUtils ??
 
-
+// exports.assignAvatar is equivalent
+// statics
 userUtils.assignAvatar = function (id) {
   var image, path;
 
@@ -31,6 +32,7 @@ userUtils.assignAvatar = function (id) {
   return path;
 };
 
+// create middlewares folder with ensureAuthenticated.js module.exports = function etc..
 userUtils.ensureAuthenticated = function (req, res, done) {
   // Express authentication function using Passport
   if (req.isAuthenticated()) {
@@ -41,6 +43,7 @@ userUtils.ensureAuthenticated = function (req, res, done) {
   }
 };
 
+// methods
 // returns true if user is followed by loggedInUser
 userUtils.isFollowed = function (user, loggedInUser) {
   if (loggedInUser) {
@@ -61,6 +64,7 @@ userUtils.makeEmberUser = function (user, loggedInUser) {
   return emberUser;
 };
 
+// generic function, statics
 userUtils.encryptPassword = function (savedPassword, cb) {
   bcrypt.genSalt(10, function(err, salt) {
     if (err) {
