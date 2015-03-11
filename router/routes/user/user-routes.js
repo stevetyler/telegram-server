@@ -1,4 +1,4 @@
-
+// var exports = module.exports = {};
 var async = require('async');
 var db = require('../../../database/database');
 var logger = require('nlogger').logger(module);
@@ -6,7 +6,6 @@ var passport = require('../../../passport/passport-authenticate');
 var passwordGenerator = require('password-generator');
 var router = require('express').Router(); // Router middleware
 var userUtils = require('./user-utils');
-
 
 var User = db.model('User');
 
@@ -48,7 +47,7 @@ router.get('/:id', function(req, res) {
     if (!user) {
       return res.status(404).end();
     }
-    var emberUser = makeEmberUser(user, loggedInUser);
+    var emberUser = userUtils.makeEmberUser(user, loggedInUser);
 
     res.send({'user': emberUser});
   });
@@ -62,7 +61,7 @@ router.get('/logout', function(req, res) {
 
 // user post requests
 
-app.post('/api/users', function(req, res) {
+router.post('/', function(req, res) {
   if (req.body.user) {
     User.findOne({id: req.body.user.id}, function (err, user) {
       if (user) {
@@ -73,12 +72,12 @@ app.post('/api/users', function(req, res) {
         var password = req.body.user.password;
         async.series([
           function(done) {
-            encryptPassword(password, function (err, encryptedPassword) {
+            userUtils.encryptPassword(password, function (err, encryptedPassword) {
               if (err) {
                 done(err);
               }
               req.body.user.password = encryptedPassword;
-              req.body.user.imageURL = assignAvatar(req.body.user.id);
+              req.body.user.imageURL = userUtils.assignAvatar(req.body.user.id);
               done(null, req.body.user);
             });
           },
@@ -92,7 +91,7 @@ app.post('/api/users', function(req, res) {
                 if (err) {
                   return res.status(500).end();
                 }
-                var emberUser = makeEmberUser(req.body.user, null);
+                var emberUser = userUtils.makeEmberUser(req.body.user, null);
                 return res.send({'user': emberUser});
               });
             });
@@ -107,11 +106,6 @@ app.post('/api/users', function(req, res) {
     });
   }
 });
-
-
-
-
-
 
 
 // function definitions
@@ -238,7 +232,7 @@ function handleFollowersRequest(req, res) {
       }
 
       followers.forEach(function(follower) {
-        emberArray.push(makeEmberUser(follower, user));
+        emberArray.push(userUtils.makeEmberUser(follower, user));
       });
 
       return res.send({'users': emberArray});
@@ -265,7 +259,7 @@ function handleFollowingRequest(req, res) {
       }
 
       following.forEach(function(following) {
-        emberArray.push(makeEmberUser(following, user));
+        emberArray.push(userUtils.makeEmberUser(following, user));
       });
 
       return res.send({'users': emberArray});
@@ -311,11 +305,6 @@ function handleResetPassword(req, res) {
 
 }
 
-
-
-
-
-
-
-
 module.exports = router;
+
+

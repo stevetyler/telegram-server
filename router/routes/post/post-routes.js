@@ -1,5 +1,4 @@
 // var exports = module.exports = {};
-
 var db = require('../../../database/database');
 var logger = require('nlogger').logger(module);
 var router = require('express').Router(); // Router middleware
@@ -102,7 +101,7 @@ function getMyStreamPosts (req, res) {
           res.status(403).end();
         }
         users.forEach(function(user) {
-          var usr = makeEmberUser(user, loggedInUser);
+          var usr = userUtils.makeEmberUser(user, loggedInUser);
           postsUsers.push(usr);
         });
         logger.info(postsUsers);

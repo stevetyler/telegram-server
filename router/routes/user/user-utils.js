@@ -2,6 +2,35 @@ var bcrypt = require('bcrypt');
 var logger = require('nlogger').logger(module);
 var userUtils = exports; // why not module.exports = userUtils ??
 
+
+userUtils.assignAvatar = function (id) {
+  var image, path;
+
+  switch (id) {
+    case 'css-tricks' : image = 'css-tricks.jpg';
+    break;
+    case 'ember-london' : image = 'ember-london.jpg';
+    break;
+    case 'js-daily' : image = 'js-daily.jpg';
+    break;
+    case 'rach' : image = 'rach.jpg';
+    break;
+    case 'sitepoint' : image = 'sitepoint.jpg';
+    break;
+    case 'steve' : image = 'steve.jpg';
+    break;
+    case 'talent-buddy' : image = 'talent-buddy.jpg';
+    break;
+    case 'tech-insight' : image = 'tech-insight.jpg';
+    break;
+    case 'vlad' : image = 'vlad.jpg';
+    break;
+    default : image = 'guest.jpg';
+  }
+  path = '/assets/img/avatars/' + image;
+  return path;
+};
+
 userUtils.ensureAuthenticated = function (req, res, done) {
   // Express authentication function using Passport
   if (req.isAuthenticated()) {
@@ -27,7 +56,7 @@ userUtils.makeEmberUser = function (user, loggedInUser) {
     id: user.id,
     name: user.name,
     imageURL: user.imageURL,
-    isFollowed: isFollowed(user, loggedInUser)
+    isFollowed: userUtils.isFollowed(user, loggedInUser)
   };
   return emberUser;
 };
@@ -48,8 +77,3 @@ userUtils.encryptPassword = function (savedPassword, cb) {
     });
   });
 };
-
-
-// module.exports = userUtils;
-
-
