@@ -47,7 +47,7 @@ router.get('/:id', function(req, res) {
     if (!user) {
       return res.status(404).end();
     }
-    var emberUser = user.makeEmberUser(user, loggedInUser);
+    var emberUser = userUtils.makeEmberUser(user, loggedInUser);
 
     res.send({'user': emberUser});
   });
@@ -62,7 +62,6 @@ router.get('/logout', function(req, res) {
 // user post requests
 
 router.post('/', function(req, res) {
-  console.log('post log');
   if (req.body.user) {
     User.findOne({id: req.body.user.id}, function (err, user) {
       if (user) {
@@ -70,17 +69,40 @@ router.post('/', function(req, res) {
         res.status(400).end();
       }
       else {
-        User.createUser(req.body.user, function(err, user) {
-          if (err) {
-            return res.status(500).end();
+        var password = req.body.user.password;
+         // organizational pattern only. Receives array of functions
+        async.series([
+          function(done) {
+            userUtils.encryptPassword(password, function (err, encryptedPassword) {
+              if (err) {
+                done(err);
+              }
+              req.body.user.password = encryptedPassword;
+              req.body.user.imageURL = userUtils.assignAvatar(req.body.user.id);
+              done(null, req.body.user);
+            });
+          },
+          function(user, done) {
+            // use User.create in Mongoose instead
+            var newUser = new User(req.body.user);
+            newUser.save(function(err, user){
+              if (err) {
+                return res.status(500).end();
+              }
+              req.logIn(user, function(err) {
+                if (err) {
+                  return res.status(500).end();
+                }
+                var emberUser = userUtils.makeEmberUser(req.body.user, null);
+                return res.send({'user': emberUser});
+              });
+            });
           }
-          req.logIn(user, function(err) {
-            if (err) {
-              return res.status(500).end();
-            }
-            var emberUser = user.makeEmberUser(null); // null because no loggedinuser
-            return res.send({'user': emberUser});
-          });
+        ], function () {
+          if (err) {
+            res.status(500).end();
+          }
+          return res.send({user: newUser});
         });
       }
     });
@@ -212,7 +234,7 @@ function handleFollowersRequest(req, res) {
       }
 
       followers.forEach(function(follower) {
-        emberArray.push(follower.makeEmberUser(user));
+        emberArray.push(userUtils.makeEmberUser(follower, user));
       });
 
       return res.send({'users': emberArray});
@@ -239,7 +261,7 @@ function handleFollowingRequest(req, res) {
       }
 
       following.forEach(function(following) {
-        emberArray.push(following.makeEmberUser(user));
+        emberArray.push(userUtils.makeEmberUser(following, user));
       });
 
       return res.send({'users': emberArray});

@@ -4,6 +4,9 @@ var logger = require('nlogger').logger(module);
 var router = require('express').Router(); // Router middleware
 var userUtils = require('../user/user-utils');
 
+// import ensureAuthenticated middleware
+var ensureAuthenticated = require('../../../middlewares/ensure-authenticated').ensureAuthenticated;
+
 var User = db.model('User');
 var Post = db.model('Post');
 
@@ -27,7 +30,7 @@ router.get('/', function(req, res) {
 * Creating a post from MyStream
 */
 
-router.post('/', userUtils.ensureAuthenticated, function(req, res) {
+router.post('/', ensureAuthenticated, function(req, res) {
   var post = {
     user: req.body.post.user,
     createdDate: req.body.post.createdDate,
@@ -56,7 +59,7 @@ router.post('/', userUtils.ensureAuthenticated, function(req, res) {
   }
 });
 
-router.delete('/:id', userUtils.ensureAuthenticated, function(req, res) {
+router.delete('/:id', ensureAuthenticated, function(req, res) {
   Post.remove({ _id: req.params.id }, function (err) {
     if (err) {
       console.log(err);
@@ -101,7 +104,7 @@ function getMyStreamPosts (req, res) {
           res.status(403).end();
         }
         users.forEach(function(user) {
-          var usr = userUtils.makeEmberUser(user, loggedInUser);
+          var usr = user.makeEmberUser(loggedInUser);
           postsUsers.push(usr);
         });
         logger.info(postsUsers);
