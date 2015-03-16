@@ -35,32 +35,43 @@ passport.use(new LocalStrategy(
   }
 ));
  
+console.log(configAuth.twitterAuth.callbackURL);
+
 passport.use(new TwitterStrategy({
-    // pull in our app consumer key and secret from auth.js file
+    // pull in the app consumer key and secret from auth.js file
     consumerKey: configAuth.twitterAuth.consumerKey,
     consumerSecret: configAuth.twitterAuth.consumerSecret,
     callbackURL: configAuth.twitterAuth.callbackURL
   },
   // twitter will send back token and profile
   function(token, tokenSecret, profile, done) {
-    User.findOne({ id: profile.id }, function(err, user) {
+    console.log(profile);
+    User.findOne({ twitterId: profile._json.id_str }, function(err, user) {
       logger.info('user found from twitter: ', profile);
       if(err) {
         done(err);
       }
       if(user) {
-        return done(null, user); // if user is found, log them in
+        // update user tokens
+        User.findOneAndUpdate({twitterId: profile._json.id_str}, {twitterAccessToken: token, twitterAccessSecret: tokenSecret}, function(err, user) {
+          return done(err, user);
+        });
       } else {
 
         var newUser = {};
 
-        // newUser.id = profile.id;
-
+        newUser.id = profile._json.screen_name;
+        newUser.imageURL = profile._json.profile_image_url;
+        newUser.name = profile._json.name;
+        newUser.twitterAccessToken = token;
+        newUser.twitterAccessSecret = tokenSecret;
+        newUser.twitterId = profile._json.id_str;
 
         User.create(newUser, function(err, user) {
           if (err) {
             logger.error('User not Created', err);
-            done(err);
+            // must return err or done will be called twice
+            return done(err);
           }
           logger.info('User Created: ', user.id);
           return done(null, user);
