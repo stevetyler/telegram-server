@@ -62,7 +62,7 @@ router.get('/auth/twitter', passport.authenticate('twitter'), function(req, res)
     logger.info('Redirecting to Twitter');
 });
 
-router.get('/auth/twitter/callback', passport.authenticate('twitter', { successRedirect: '/myStream', failureRedirect: '/' }));
+router.get('/auth/twitter/callback', passport.authenticate('twitter', { successRedirect: '/my-stream', failureRedirect: '/' }));
 
 
 
