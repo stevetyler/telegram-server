@@ -5,7 +5,6 @@ var logger = require('nlogger').logger(module);
 var passport = require('../../../passport/passport-authenticate');
 var passwordGenerator = require('password-generator');
 var router = require('express').Router(); // Router middleware
-var userUtils = require('./user-utils');
 
 var User = db.model('User');
 
@@ -21,6 +20,8 @@ router.get('/', function(req, res) {
   else if (operation === 'followers') { handleFollowersRequest(req, res); }
 
   else if (operation === 'following') { handleFollowingRequest(req, res); }
+
+  else if (operation === 'logout') { handleLogoutRequest(req, res); }
 
   else if (req.query.followUserId) { handleFollowRequest(req, res); }
 
@@ -53,18 +54,11 @@ router.get('/:id', function(req, res) {
   });
 });
 
-router.get('/logout', function(req, res) {
-  req.logout();
-  res.status(200).end();
-});
-
 router.get('/auth/twitter', passport.authenticate('twitter'), function(req, res) {
     logger.info('Redirecting to Twitter');
 });
 
 router.get('/auth/twitter/callback', passport.authenticate('twitter', { successRedirect: '/my-stream', failureRedirect: '/' }));
-
-
 
 // user post requests
 
@@ -275,9 +269,9 @@ function handleLoginRequest(req, res) {
 }
 
 function handleLogoutRequest(req, res) {
-  // logger.info('Logging Out');
+  logger.info('Logging Out');
   req.logout();
-  return res.send({ users: {} });
+  return res.send({ users: [] });
 }
 
 function handleIsAuthenticatedRequest(req, res) {
@@ -291,6 +285,7 @@ function handleIsAuthenticatedRequest(req, res) {
 function handleResetPassword(req, res) {
 
 }
+
 
 module.exports = router;
 
