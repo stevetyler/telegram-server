@@ -35,7 +35,7 @@ passport.use(new LocalStrategy(
   }
 ));
  
-console.log(configAuth.twitterAuth.callbackURL);
+// console.log(configAuth.twitterAuth.callbackURL);
 
 passport.use(new TwitterStrategy({
     // pull in the app consumer key and secret from auth.js file
@@ -53,7 +53,7 @@ passport.use(new TwitterStrategy({
       }
       if(user) {
         // update user tokens
-        User.findOneAndUpdate({twitterId: profile._json.id_str}, {twitterAccessToken: token, twitterAccessSecret: tokenSecret}, function(err, user) {
+        User.findOneAndUpdate({twitterId: profile._json.id_str}, {twitterAccessToken: token, twitterSecretToken: tokenSecret}, function(err, user) {
           return done(err, user);
         });
       } else {
@@ -64,7 +64,7 @@ passport.use(new TwitterStrategy({
         newUser.imageURL = profile._json.profile_image_url;
         newUser.name = profile._json.name;
         newUser.twitterAccessToken = token;
-        newUser.twitterAccessSecret = tokenSecret;
+        newUser.twitterSecretToken = tokenSecret;
         newUser.twitterId = profile._json.id_str;
 
         User.create(newUser, function(err, user) {
