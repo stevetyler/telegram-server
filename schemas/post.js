@@ -6,7 +6,8 @@ var postSchema = new Schema({
   user: String,
   ownedBy: String,
   createdDate: Date,
-  body: String
+  body: String,
+  twitterTweetId: String
 });
 
 module.exports = postSchema;
