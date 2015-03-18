@@ -15,7 +15,8 @@
     "bcrypt": "~0.8.0",
     "password-generator": "~0.2.3",
     "mailgun-js": "~0.6.7",
-    "passport-twitter": "~1.0.3"
+    "passport-twitter": "~1.0.3",
+    "twitter": "~1.2.5"
   },
   "devDependencies": {
     "body-parser": "~1.9.0",
