@@ -12,10 +12,11 @@ var userSchema = new Schema({
   following: [String],
   twitterAccessToken: String,
   twitterSecretToken: String,
-  twitterId: String
+  twitterId: String,
+  twitterLastTweetId: String
 });
 
-// methods are called on instances of the user object ie actual objects
+// methods are called on instances of the User object ie actual objects
 userSchema.methods.makeEmberUser = function (loggedInUser) {
   var emberUser = {
     id: this.id,
@@ -25,8 +26,6 @@ userSchema.methods.makeEmberUser = function (loggedInUser) {
   };
   return emberUser;
 };
-
-// makeTwitterUser id = twitter user
 
 
 userSchema.methods.isFollowed = function (loggedInUser) {
@@ -47,6 +46,7 @@ userSchema.statics.createUser = function(user, done) {
   // User.encryptPassword async function, then create user in database
   User.encryptPassword(user.password, function (err, encryptedPassword) {
     if (err) {
+      // return?
       done(err);
     }
     user.password = encryptedPassword;
