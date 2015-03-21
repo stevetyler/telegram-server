@@ -6,6 +6,8 @@ var userUtils = require('../user/user-utils');
 
 // import ensureAuthenticated middleware
 var ensureAuthenticated = require('../../../middlewares/ensure-authenticated').ensureAuthenticated;
+var Twitter = require('twitter');
+var configAuth = require('./../../../auth');
 
 var User = db.model('User');
 var Post = db.model('Post');
@@ -15,14 +17,19 @@ var Post = db.model('Post');
 */
 
 router.get('/', function(req, res) {
+  console.log(req.query.operation);
   if (req.query.operation === 'myStream') {
     // logger.info('GET posts for myStream');
     getMyStreamPosts(req, res);
   } else if (req.query.operation === 'userPosts') {
     // logger.info('GET posts for user/index route');
     getUserPosts(req, res);
-  } else {
-      return res.status(500).end();
+  } else if (req.query.operation === 'importFavs') {
+
+    getTwitterFavs(req, res);
+  }
+  else {
+    return res.status(500).end();
   }
 });
 
@@ -39,18 +46,19 @@ router.post('/', ensureAuthenticated, function(req, res) {
 
   if (req.user.id === req.body.post.user) {
     var newPost = new Post(post);
-    var emberPost = {
-      id: newPost._id,
-      user: req.user.id,
-      body: newPost.body,
-      createdDate: newPost.createdDate
-    };
 
     newPost.save(function(err, post) {
       if (err) {
         // sends different error from browser to identify origin
         res.status(501).end();
       }
+      // copy of post
+      var emberPost = {
+        id: post._id, // created by Mongo when saved is called
+        user: post.user,
+        body: post.body,
+        createdDate: post.createdDate
+      };
       return res.send({'post': emberPost});
     });
   }
@@ -135,6 +143,52 @@ function getUserPosts(req, res) {
     return res.send({'posts': emberPosts});
   });
 }
+
+function getTwitterFavs(req, res) {
+  console.log('Get Twitter Favs');
+  console.log(req.user.twitterAccessToken, req.user.twitterSecretToken);
+  var client = new Twitter({
+    consumer_key: configAuth.twitterAuth.consumerKey,
+    consumer_secret: configAuth.twitterAuth.consumerSecret,
+    access_token_key: req.user.twitterAccessToken,
+    access_token_secret: req.user.twitterSecretToken
+  });
+
+  var params = {
+    screen_name: req.user.id,
+    count: 5
+  };
+
+  if (req.user.twitterLastTweetId) {
+    params.since_id = req.user.twitterLastTweetId;
+  }
+
+  client.get('favorites/list', params, function(error, tweets, response){
+  if(error) console.log(error);
+    console.log(tweets[0]);  // The favorites.
+    // console.log(response);  // Raw response object.
+    // create post from tweets array and store twitterLastTweetId for user depending on order received
+      
+    var twitterFavArr = [],
+    
+    twitterPost = {
+      body: '',
+      createdDate: '',
+      user: req.user.id,
+      twitterTweetId: tweets[0].id // loop through tweets
+
+    };
+    // put twitterPosts in arr using for loop
+    // call create function of post model to create posts
+    // eg check connection.model('Post')
+    // callback update twitterLastTweetId
+
+
+    res.send(tweets);
+  });
+}
+
+
 
 module.exports = router;
 
