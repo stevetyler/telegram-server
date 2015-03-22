@@ -12,6 +12,8 @@ var configAuth = require('./../../../auth');
 var User = db.model('User');
 var Post = db.model('Post');
 
+var FavImporter = require("../../../lib/import-favs.js");
+  
 /*
 * Requesting posts for My Stream or User Stream
 */
@@ -147,48 +149,11 @@ function getUserPosts(req, res) {
 function getTwitterFavs(req, res) {
   console.log('Get Twitter Favs');
   console.log(req.user.twitterAccessToken, req.user.twitterSecretToken);
-  var client = new Twitter({
-    consumer_key: configAuth.twitterAuth.consumerKey,
-    consumer_secret: configAuth.twitterAuth.consumerSecret,
-    access_token_key: req.user.twitterAccessToken,
-    access_token_secret: req.user.twitterSecretToken
-  });
+  
+  // manual import  
+  FavImporter.importFavs(req.user.id);
 
-  var params = {
-    screen_name: req.user.id,
-    count: 5
-  };
-
-  if (req.user.twitterLastTweetId) {
-    params.since_id = req.user.twitterLastTweetId;
-  }
-
-  client.get('favorites/list', params, function(error, tweets, response){
-  if(error) console.log(error);
-    console.log(tweets[0]);  // The favorites.
-    // console.log(response);  // Raw response object.
-    // create post from tweets array and store twitterLastTweetId for user depending on order received
-      
-    var twitterFavArr = [],
-    
-    twitterPost = {
-      body: '',
-      createdDate: '',
-      user: req.user.id,
-      twitterTweetId: tweets[0].id // loop through tweets
-
-    };
-    // put twitterPosts in arr using for loop
-    // call create function of post model to create posts
-    // eg check connection.model('Post')
-    // callback update twitterLastTweetId
-
-
-    res.send(tweets);
-  });
 }
-
-
 
 module.exports = router;
 
