@@ -147,12 +147,27 @@ function getUserPosts(req, res) {
 }
 
 function getTwitterFavs(req, res) {
+  var emberPosts = [];
+
   console.log('Get Twitter Favs');
   console.log(req.user.twitterAccessToken, req.user.twitterSecretToken);
   
-  // manual import  
-  FavImporter.importFavs(req.user.id);
-
+  // manual import, pass whole user not just id which is inefficient
+  FavImporter.importFavs(req.user, function(err, posts) {
+    if (err) {
+      return res.status(400).end();
+    }
+    posts.forEach(function(post) {
+      var emberPost = {
+        id: post._id,
+        user: post.user,
+        body: post.body,
+        createdDate: post.createdDate
+      };
+      emberPosts.push(emberPost);
+    });
+    return res.send({'posts': emberPosts});
+  });
 }
 
 module.exports = router;
